@@ -40,7 +40,7 @@ class ChainNormalizer:
         42220: 'celo',
         25: 'cronos',
         250: 'fantom',
-        100: 'gnosis',
+        100: 'cronos',  # Override: tokens with chain_id=100 are cronos, not gnosis
         1666600000: 'harmony',
         2222: 'kava',
         5000: 'mantle',
@@ -58,6 +58,7 @@ class ChainNormalizer:
         42262: 'oasis_emerald',
         40: 'telos',
         361: 'theta',
+        1946: 'soneium',  # Soneium chain
         
         # Non-EVM Networks (unique chain IDs > 100000)
         101001: 'solana',
@@ -202,6 +203,10 @@ class ChainNormalizer:
         'cronos': 'cronos',
         'cro': 'cronos',
         'crypto_com_chain': 'cronos',
+
+        # Soneium
+        'soneium': 'soneium',
+        'soneium_mainnet': 'soneium',
 
         # Fantom
         'fantom': 'fantom',

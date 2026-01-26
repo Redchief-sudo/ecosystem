@@ -168,11 +168,27 @@ class MultiChainTokenIngestionPipeline:
                     rejected_count += 1
                     continue
             
+            # SPECIAL CASE: Handle Wormhole tokens on Solana with incorrect chain_id=1
+            if (len(set(normalized_sources)) != 1 and 
+                'solana' in normalized_sources and 
+                'ethereum' in normalized_sources and
+                token.get("chain") == 'solana' and
+                token.get("chain_id") == 1 and
+                'Wormhole' in token.get("name", "")):
+                
+                logger.info(
+                    "SPECIAL: Correcting Wormhole token %s from incorrect chain_id=1 to solana",
+                    token.get("symbol", "Unknown")
+                )
+                # Replace ethereum with solana in normalized sources
+                normalized_sources = ['solana' if s == 'ethereum' else s for s in normalized_sources]
+            
             # STRICT: All normalized chain sources must match
             if len(set(normalized_sources)) != 1:
                 logger.error(
                     "CRITICAL: Chain data conflict for %s - SYSTEM FAILURE",
-                    token.get("symbol", "Unknown")")
+                    token.get("symbol", "Unknown")
+                )
                 logger.error(
                     "  Sources: %s -> Normalized: %s",
                     chain_sources, normalized_sources
@@ -199,7 +215,7 @@ class MultiChainTokenIngestionPipeline:
             
             # Set authoritative chain and log source
             token["chain"] = normalized
-            token["chain_source"] = source_type
+            token["chain_source"] = token.get("chain_source", "dex_data_authority")
             
             # Log if we overrode conflicting data
             if dex_chain and (top_chain_id or top_chain):
