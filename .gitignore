@@ -31,3 +31,9 @@ logs/
 
 # System
 .DS_Store
+
+# Environment files
+.env
+.env.*
+.env.save
+.env.save.1
