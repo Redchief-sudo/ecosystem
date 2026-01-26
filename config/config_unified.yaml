@@ -1,0 +1,353 @@
+strategies:
+  enabled:
+    - momentum
+    - mean_reversion
+    - breakout
+    - volatility_breakout
+    - aggressive
+    - risk_caps
+    - safe
+    - smart_money
+
+  # Strategy weighting - ensures fair competition between strategies
+  # Weights are applied when selecting the best strategy for an opportunity
+  # Default weight is 1.0 (equal weighting)
+  # Lower weights reduce a strategy's influence, higher weights increase it
+  weights:
+    momentum: 1.2
+    mean_reversion: 1.1
+    breakout: 1.1
+    volatility_breakout: 1.0
+    aggressive: 1.3
+    risk_caps: 0.8  # Reduced weight to prevent dominance
+    safe: 0.9
+    smart_money: 1.0
+
+  configs:
+
+    momentum:
+      enabled: true
+      lookback: 60
+      threshold: 0.7
+      min_volume_24h: 100000
+      min_liquidity: 50000
+      min_market_cap: 1000000
+      min_price_change: 0.02
+      max_price_change: 0.15
+      rsi_overbought: 70
+      rsi_oversold: 30
+      require_momentum_alignment: true
+      min_confidence: 0.35
+      base_position_size: 0.002
+      max_position_size: 0.01
+
+    mean_reversion:
+      enabled: true
+      lookback: 120
+      zscore: 2.0
+      min_volume_24h: 100000
+      min_liquidity: 50000
+      min_market_cap: 1000000
+      std_dev_threshold: 2.0
+      extreme_threshold: 3.0
+      min_confidence: 0.35
+      max_confidence: 0.90
+      stop_loss: 0.05
+      take_profit: 0.10
+      risk_reward_ratio: 2.0
+      max_half_life: 50
+      bollinger_periods: 20
+      bollinger_std: 2.0
+      volatility_lookback: 14
+
+    breakout:
+      enabled: true
+      min_volume_24h: 200000
+      min_liquidity: 100000
+      breakout_threshold: 0.02
+      confirmation_periods: 3
+      false_breakout_protection: true
+      min_confidence: 0.35
+      max_position_size: 0.05
+      volume_confirmation_multiplier: 1.5
+      price_confirmation_threshold: 0.01
+      multi_timeframe: true
+      volume_spike_required: true
+
+    volatility_breakout:
+      enabled: true
+      min_volume_24h: 150000
+      min_liquidity: 75000
+      squeeze_threshold: 0.01
+      expansion_factor: 2.0
+      min_confidence: 0.35
+      max_position_size: 0.04
+      bollinger_period: 20
+      bollinger_std: 2.0
+      volume_spike_threshold: 2.0
+      squeeze_duration_min: 20
+      expansion_confirmation: true
+
+    aggressive:
+      enabled: true
+      max_position_size: 0.05
+      max_drawdown: 0.15
+      leverage: 2.0
+      min_confidence: 0.35
+      high_volatility_threshold: 0.3
+      risk_multiplier: 1.5
+      profit_target_multiplier: 2.0
+      stop_loss_tight: 0.03
+      momentum_threshold: 0.05
+      volume_requirement: 50000
+
+    risk_caps:
+      enabled: true
+      max_position_size: 0.05
+      max_drawdown: 0.1
+      var_limit: 0.02
+      correlation_limit: 0.7
+      portfolio_heat_limit: 0.8
+      max_leverage: 3.0
+      var_confidence: 0.95
+      rebalance_threshold: 0.1
+      position_concentration_limit: 0.2
+      sector_exposure_limit: 0.3
+      min_confidence: 0.35
+
+    safe:
+      enabled: true
+      kelly_criterion: true
+      max_leverage: 3.0
+      risk_free_rate: 0.02
+      min_sharpe_ratio: 1.5
+      max_positions: 10
+      position_sizing_method: "kelly"
+      risk_adjusted_returns: true
+      portfolio_optimization: true
+      rebalance_frequency: "daily"
+      max_sector_exposure: 0.2
+      min_confidence: 0.35
+
+    smart_money:
+      enabled: true
+      min_wallet_value: 100000
+      min_transaction_count: 10
+      whale_threshold: 1000000
+      follow_ratio: 0.3
+      min_confidence: 0.35
+      lookback_window: 30
+      wallet_analysis_depth: 100
+      transaction_size_threshold: 50000
+      profit_taking_ratio: 2.0
+      stop_loss_ratio: 0.5
+
+# Scanner Configuration
+scanners:
+  dex_screener:
+    enabled: true
+    min_liquidity: 10000.0
+    min_volume_24h: 50000.0
+    min_market_cap: 100000.0
+    rpc_timeout: 30
+    max_retries: 3
+    retry_delay: 1.0
+    supported_chains: ["ethereum", "bsc", "polygon", "arbitrum", "optimism", "avalanche", "fantom", "base", "blast"]
+
+  mempool_scanner:
+    enabled: true
+    min_liquidity: 5000.0
+    min_volume_24h: 25000.0
+    min_market_cap: 50000.0
+    rpc_timeout: 30
+    max_retries: 3
+    retry_delay: 1.0
+    supported_chains: ["ethereum", "bsc", "polygon", "arbitrum", "optimism", "avalanche", "fantom", "base"]
+    min_whale_value: 100000
+    min_mev_profit: 1000
+    min_arb_profit: 500
+    max_slippage: 0.02
+
+  onchain_scanner_ultra:
+    enabled: false
+    min_liquidity: 5000.0
+    min_volume_24h: 25000.0
+    min_market_cap: 50000.0
+    rpc_timeout: 30
+    max_retries: 3
+    retry_delay: 1.0
+    supported_chains: ["ethereum", "bsc", "polygon", "arbitrum", "optimism", "avalanche", "fantom", "base"]
+
+  token_analyzer:
+    enabled: true
+    min_liquidity: 5000.0
+    min_volume_24h: 25000.0
+    min_market_cap: 50000.0
+    rpc_timeout: 30
+    max_retries: 3
+    retry_delay: 1.0
+    supported_chains: ["ethereum", "bsc", "polygon", "arbitrum", "optimism", "avalanche", "fantom", "base", "blast", "cronos", "gnosis"]
+    analysis_depth: "deep"
+    data_sources: ["dexscreener", "coingecko", "onchain"]
+
+  settings:
+    concurrent_scans: 8
+    scan_interval: 60
+    max_tokens_per_scan: 100
+    deduplication_window: 300
+    health_check_interval: 300
+    max_failures: 3
+    circuit_breaker_timeout: 600
+
+# AI Controller Configuration
+ai:
+  enabled: true
+  max_queue_size: 1000
+  decision_timeout: 30.0
+  opportunity_timeout: 60.0
+  
+  # Neural Brain Configuration
+  signal_thresholds:
+    min_confidence: 0.2
+    excellent_threshold: 0.8
+    strong_threshold: 0.6
+    moderate_threshold: 0.4
+  
+  strategy_weights:
+    technical: 0.4
+    fundamental: 0.3
+    sentiment: 0.2
+    order_flow: 0.1
+  
+  # Background task configuration
+  background_tasks:
+    token_consumer_enabled: true
+    cleanup_enabled: true
+    dedup_ttl_seconds: 3600
+    max_dedup_size: 50000
+  
+  # Market regime detection
+  regime_detection:
+    enabled: true
+    cache_ttl: 300.0
+    update_frequency: 60.0
+
+# Trading Configuration
+entry:
+  enabled: true
+  min_liquidity: 10000.0
+  min_volume: 5000.0
+  max_history: 1000
+
+trading:
+  enabled: true
+  trading_mode: "paper"
+  max_position_size: 0.1
+  max_total_exposure: 0.5
+  stop_loss_global: 0.1
+  max_drawdown: 0.2
+
+  paper_trading:
+    enabled: true
+    portfolio_value_per_network: 100.0
+    commission_rate: 0.001
+    slippage_model: "realistic"
+    latency_simulation: true
+    realistic_fills: true
+    partial_fills: true
+    market_impact: true
+    auto_switch: false
+    simulation_days: 30
+    min_trades: 20
+    min_success_rate: 0.60
+    require_promotion: true
+
+  network_portfolios:
+    ethereum: 100.0
+    bsc: 100.0
+    polygon: 100.0
+    arbitrum: 100.0
+    optimism: 100.0
+    avalanche: 100.0
+    fantom: 100.0
+    base: 100.0
+    blast: 100.0
+    cronos: 100.0
+    gnosis: 100.0
+    moonbeam: 100.0
+    moonriver: 100.0
+    aurora: 100.0
+    harmony: 100.0
+    kava: 100.0
+    celo: 100.0
+    metis: 100.0
+    boba: 100.0
+    zksync: 100.0
+    scroll: 100.0
+    linea: 100.0
+    mantle: 100.0
+    polygon_zkevm: 100.0
+    canto: 100.0
+    evmos: 100.0
+    arbitrum_nova: 100.0
+    astar: 100.0
+    iotex: 100.0
+    kcc: 100.0
+    theta: 100.0
+    okc: 100.0
+    heco: 100.0
+    oasis_emerald: 100.0
+    telos: 100.0
+    klaytn: 100.0
+    oasis: 100.0
+    syscoin: 100.0
+    velas: 100.0
+    thundercore: 100.0
+    palm: 100.0
+    manta: 100.0
+    polygonzkevm: 100.0
+    opbnb: 100.0
+    solana: 100.0
+    aptos-mainnet: 100.0
+    bitcoin: 100.0
+
+  risk_management:
+    max_position_size: 0.05
+    max_total_exposure: 0.3
+    stop_loss_global: 0.1
+    max_drawdown: 0.15
+    risk_per_trade: 0.01
+    max_leverage: 1.0
+    portfolio_heat_limit: 0.6
+    max_concurrent_positions: 3
+
+  position_sizing:
+    method: "fixed_risk"
+    base_size: 0.01
+    max_size: 0.05
+    risk_per_trade: 0.01
+    confidence_threshold: 0.7
+    min_trade_size: 0.005
+    max_trade_size: 0.05
+
+  execution:
+    slippage_tolerance: 0.002
+    max_gas_price_gwei: 30
+    execution_timeout: 30
+    retry_attempts: 2
+    retry_delay: 1.0
+    realistic_timing: true
+
+  trading_pairs:
+    - "ETH/USDT"
+    - "BTC/USDT"
+    - "BNB/USDT"
+
+  intervals:
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "1d"
+

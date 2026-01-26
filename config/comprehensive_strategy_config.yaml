@@ -1,0 +1,105 @@
+enabled:
+- momentum
+- mean_reversion
+confidence_threshold: 0.7
+max_positions: 5
+risk_management:
+  max_total_exposure: 0.5
+  max_position_size: 0.1
+  stop_loss_global: 0.1
+momentum:
+  min_volume_24h: 100000
+  min_liquidity: 50000
+  min_market_cap: 1000000
+  min_price_change: 0.02
+  max_price_change: 0.15
+  rsi_overbought: 70
+  rsi_oversold: 30
+  require_momentum_alignment: true
+  min_confidence: 0.5
+  base_position_size: 0.002
+  max_position_size: 0.01
+  lookback_periods:
+  - 14
+  - 30
+  - 60
+  volume_weight: 0.3
+  price_weight: 0.4
+  rsi_weight: 0.3
+mean_reversion:
+  min_volume_24h: 100000
+  min_liquidity: 50000
+  min_market_cap: 1000000
+  std_dev_threshold: 2.0
+  extreme_threshold: 3.0
+  min_confidence: 0.35
+  max_confidence: 0.9
+  stop_loss: 0.05
+  take_profit: 0.1
+  risk_reward_ratio: 2.0
+  max_half_life: 50
+  min_hurst: 0.3
+  max_hurst: 0.5
+  bollinger_periods: 20
+  bollinger_std: 2.0
+  volatility_lookback: 14
+  regime_sensitivity: 0.7
+  volume_surge_threshold: 1.5
+  max_position_size: 0.08
+  min_position_size: 0.01
+  zscore_decay: 0.9
+EliteMomentumStrategy:
+  enabled: true
+  lookback: 60
+  threshold: 0.7
+  min_volume_24h: 100000
+  min_liquidity: 50000
+  min_market_cap: 1000000
+  min_price_change: 0.02
+  max_price_change: 0.15
+  rsi_overbought: 70
+  rsi_oversold: 30
+  require_momentum_alignment: true
+  min_confidence: 0.5
+  base_position_size: 0.002
+  max_position_size: 0.01
+  multi_timeframe: true
+  volume_confirmation: true
+MeanReversionStrategy:
+  enabled: true
+  lookback: 120
+  zscore: 2.0
+  min_volume_24h: 100000
+  min_liquidity: 50000
+  min_market_cap: 1000000
+  std_dev_threshold: 2.0
+  extreme_threshold: 3.0
+  min_confidence: 0.35
+  max_confidence: 0.9
+  stop_loss: 0.05
+  take_profit: 0.1
+  risk_reward_ratio: 2.0
+  max_half_life: 50
+  bollinger_periods: 20
+  bollinger_std: 2.0
+  volatility_lookback: 14
+  adaptive_thresholds: true
+BreakoutStrategy:
+  enabled: false
+  min_volume_24h: 200000
+  min_liquidity: 100000
+  breakout_threshold: 0.02
+  confirmation_periods: 3
+  false_breakout_protection: true
+RiskCapsStrategy:
+  enabled: false
+  max_position_size: 0.05
+  max_drawdown: 0.1
+  var_limit: 0.02
+  correlation_limit: 0.7
+SmartMoneyStrategy:
+  enabled: false
+  min_wallet_value: 100000
+  min_transaction_count: 10
+  whale_threshold: 1000000
+  follow_ratio: 0.3

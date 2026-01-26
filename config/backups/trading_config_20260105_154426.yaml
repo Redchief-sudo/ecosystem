@@ -1,0 +1,199 @@
+version: "1.0"
+environment: "development"
+
+# ================================================================================
+# TRADING CONFIGURATION (FIXES the 'Executor private key not found' error)
+# ================================================================================
+trading:
+  # General trading settings
+  enabled: true
+  mode: "paper"  # Recommended mode for testing: "paper" or "live"
+  min_paper_trades: 20
+  min_success_rate: 0.6
+  max_open_trades: 10
+  max_position_size: 0.1
+  default_slippage: 0.5
+  max_slippage: 3.0
+  gas_settings:
+    max_priority_fee_gwei: 2.0
+    max_fee_multiplier: 1.5
+    gas_limit_buffer: 1.2
+  
+# Executor Wallet Configuration
+# IMPORTANT: Use an ENVIRONMENT VARIABLE (e.g., ${EXECUTOR_PRIVATE_KEY}) for
+# production/live trading. This is a safe placeholder key for 'paper' mode only.
+wallets:
+  executor:
+    private_key: "0x8482cbd3fb2e8178234f5fd819c5c2f1875cb22ee1489a5e38de1150204e24b3"
+    address: "0x4305c53B7D9a5d87F005bc41f3188bedFFFF51Ea"
+  # Portfolio settings
+  portfolio:
+    initial_balance: 200.0  # Initial portfolio value in USD
+    base_currency: "USD"
+    max_drawdown: 0.2  # 20% max drawdown
+    
+  # Position sizing
+  position_sizing:
+    max_position_size: 0.1    # 10% of portfolio
+    min_position_size: 0.01   # 1% of portfolio
+    risk_per_trade: 0.02      # 2% risk per trade
+    max_risk_per_trade: 0.05  # 5% max risk per trade
+
+# Chain-specific gas settings
+chain_gas_settings:
+  ethereum:
+    max_priority_fee_gwei: 3.0
+    max_fee_multiplier: 2.0
+  arbitrum:
+    max_priority_fee_gwei: 0.1
+    max_fee_multiplier: 1.2
+
+# Risk management settings
+risk:
+  max_drawdown: 0.15
+  daily_loss_limit: 0.05
+  position_risk: 0.02
+  max_leverage: 5.0
+  blacklist_duration_hours: 24
+  cooldown_after_loss: 3600
+  token_risk:
+    max_volatility: 5.0
+    min_liquidity: 10000
+    min_volume: 5000
+
+# ================================================================================
+# AI CONFIGURATION (Your existing settings)
+# ================================================================================
+ai:
+  # General AI settings
+  enabled: true
+  model_dir: "models"
+  min_confidence: 0.5
+  
+  # Input features for the AI model
+  input_features:
+    # Price and Volume
+    - "price"
+    - "volume"
+    - "volume_change_24h"
+    - "price_change_24h"
+    - "high_24h"
+    - "low_24h"
+    - "open_price"
+    - "close_price"
+    
+    # Technical Indicators
+    - "rsi"
+    - "macd"
+    - "macd_signal"
+    - "macd_hist"
+    - "bollinger_bands_upper"
+    - "bollinger_bands_middle"
+    - "bollinger_bands_lower"
+    - "sma_50"
+    - "sma_200"
+    - "ema_20"
+    - "stoch_k"
+    - "stoch_d"
+    
+    # Market Data
+    - "market_cap"
+    - "fully_diluted_valuation"
+    - "circulating_supply"
+    - "total_supply"
+    
+    # Trading Data
+    - "buy_volume"
+    - "sell_volume"
+    - "order_book_depth"
+    - "spread"
+  
+  # Models configuration
+  models:
+    entry_model:
+      path: "models/entry_ai_model.pkl"
+      input_features: ["rsi", "macd", "volume", "price_change_24h"]
+      output_features: ["entry_signal"]
+      threshold: 0.5
+      
+    exit_model:
+      path: "models/exit_ai_model.pkl"
+      input_features: ["profit_pct", "rsi", "volume_change"]
+      output_features: ["exit_signal"]
+      threshold: 0.65
+      
+  # Position sizing
+  position_sizing:
+    max_position_size: 0.1  # 10% of portfolio
+    min_position_size: 0.01  # 1% of portfolio
+    risk_per_trade: 0.02  # 2% risk per trade
+    
+  # Training configuration
+  training:
+    enabled: true
+    epochs: 50
+    batch_size: 32
+    validation_split: 0.2
+    early_stopping_patience: 10
+    learning_rate: 0.001
+    
+  # Inference settings
+  inference:
+    batch_size: 32
+    use_gpu: true
+    gpu_id: 0
+    
+  # Monitoring and logging
+  monitoring:
+    enabled: true
+    log_predictions: true
+    save_predictions: true
+    prediction_log_dir: "logs/predictions"
+    log_level: "INFO"
+    metrics_interval: 3600  # Log metrics every hour
+    
+  # Model versioning
+  versioning:
+    enabled: true
+    model_registry: "models/registry"
+    keep_versions: 5
+    
+  position_ai:
+    model_path: "models/position_ai_model.pkl"
+    max_position_size: 0.1  # 10% of portfolio
+    min_position_size: 0.01  # 1% of portfolio
+    
+  # Risk Brain settings
+  risk_brain:
+    max_drawdown: 0.1  # 10% max drawdown
+    max_position_risk: 0.2  # 20% max risk per position
+    max_portfolio_risk: 0.3  # 30% max risk for entire portfolio
+    
+  # Score Engine settings
+  score_engine:
+    weights:
+      liquidity: 0.25
+      volatility: 0.2
+      volume: 0.2
+      momentum: 0.15
+      sentiment: 0.1
+      market_cap: 0.1
+    min_liquidity: 100000  # $100k minimum liquidity
+    
+  # Retraining settings
+  retraining:
+    enabled: true
+    interval_hours: 24  # Retrain every 24 hours
+    min_samples: 1000  # Minimum samples needed for retraining
+    
+  # Feature engineering
+  features:
+    lookback_periods: [1, 3, 7, 14, 30]  # Days to look back for features
+    technical_indicators: ["sma", "ema", "rsi", "macd", "bollinger_bands"]
+    
+  # Performance optimization
+  performance:
+    use_gpu: true
+    num_threads: 4
+    batch_processing: true
+    batch_size: 100

@@ -1,0 +1,386 @@
+# API Configuration (Shared between paper and live modes)
+# These keys are used in both modes for consistent behavior
+# Environment variables take precedence over these values
+api_keys:
+  # Blockchain Explorers (for fetching on-chain data)
+  etherscan: ${ETHERSCAN_API_KEY}     # For Ethereum mainnet
+  bscscan: ${BSCSCAN_API_KEY}         # For Binance Smart Chain
+  polygonscan: ${POLYGONSCAN_API_KEY}  # For Polygon
+  snowtrace: ${SNOWTRACE_API_KEY}     # For Avalanche C-Chain
+  arbiscan: ${ARBISCAN_API_KEY}       # For Arbitrum
+  ftmscan: ${FTMSCAN_API_KEY}        # For Fantom
+  cronoscan: ${CRONOSCAN_API_KEY}    # For Cronos
+  
+  # Node Providers (if using managed nodes)
+  # infura: ${INFURA_PROJECT_ID}
+  # alchemy: ${ALCHEMY_API_KEY}
+  # quicknode: ${QUICKNODE_API_KEY}
+  # tatum: ${TATUM_API_KEY}
+  
+  # Exchange APIs (for CEX integration if needed)
+  # binance:
+  #   key: ${BINANCE_API_KEY}
+  #   secret: ${BINANCE_API_SECRET}
+  #   testnet: true  # Use testnet for paper trading mode
+  
+  # Other Services
+  # moralis: ${MORALIS_API_KEY}  # For advanced analytics
+  # thegraph: ${THEGRAPH_API_KEY}  # For subgraph queries
+
+# Trading Mode
+mode: "paper"  # or "live"
+
+# Paper Trading Settings (only used when mode is "paper")
+paper_trading:
+  enabled: true
+  require_promotion: true  # require promotion gate to switch to live
+  min_trades: 20  # minimum paper trades before considering promotion
+  min_success_rate: 0.60  # minimum success rate to consider promotion
+  auto_switch: true  # enable automatic switch after simulation period
+  simulation_days: 30  # days of paper trading before auto-switch to live
+
+# Top 10 Blockchain Networks Configuration
+networks:
+  # 1. Ethereum Mainnet
+  ethereum:
+    rpc: ${ETH_RPC_URL}
+    chain_id: 1
+    native_token: ETH
+    block_explorer: https://etherscan.io
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+      uniswap_v3:
+        router: "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+        factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+      sushiswap:
+        router: "0xd9e1cE17f2641f24aE83637abB66a2cA9C0443B6"
+        factory: "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+    flash_loan_providers:
+      aave_v2: "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
+      aave_v3: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+      dydx: "0x1E0447b19BB6EfdA5A6eC1a12DfC5BCB0D2A9C2a"
+
+  # 2. Binance Smart Chain
+  bsc:
+    rpc: ${BSC_RPC_URL}
+    chain_id: 56
+    native_token: BNB
+    block_explorer: https://bscscan.com
+    dexes:
+      pancakeswap_v2:
+        router: "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+        factory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+      pancakeswap_v3:
+        router: "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4"
+        factory: "0x0BFbCF9fA4f9C56B0F40a671Ad40E0805A091865"
+      apeswap:
+        router: "0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFfF3A"
+        factory: "0x0841BD0B734E4F5853f0dD8d7Ea041c241fB0Da6"
+    flash_loan_providers:
+      aave_v3: "0x6cEf77Fb9f4625702b4bCdeF0f13eFb3eB46979C"
+      venus: "0xfD36E2c2a6789Db23113685031D7F16329158384"
+
+  # 3. Polygon (Matic)
+  polygon:
+    rpc: ${POLYGON_RPC_URL}
+    chain_id: 137
+    native_token: MATIC
+    block_explorer: https://polygonscan.com
+    dexes:
+      quickswap:
+        router: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+        factory: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32"
+      sushiswap:
+        router: "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+        factory: "0xc35DADB65012eC5796536bD9864eD8773aBc74C4"
+    flash_loan_providers:
+      aave_v3: "0x794a61358D6845594F94dc1DB02A252b5b4814aD"
+
+  # 4. Avalanche C-Chain
+  avalanche:
+    rpc: ${AVALANCHE_RPC_URL}
+    chain_id: 43114
+    native_token: AVAX
+    block_explorer: https://snowtrace.io
+    dexes:
+      traderjoe_v2:
+        router: "0x60aE616a2155Ee3d9A68541Ba4544862310933d4"
+        factory: "0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10"
+      pangolin:
+        router: "0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106"
+        factory: "0xefa94DE7a4656D787667C749f7E2413Bf91cc9B2"
+    flash_loan_providers:
+      aave_v3: "0x794a61358D6845594F94dc1DB02A252b5b4814aD"
+
+  # 5. Arbitrum One
+  arbitrum:
+    rpc: ${ARBITRUM_RPC_URL}
+    chain_id: 42161
+    native_token: ETH
+    block_explorer: https://arbiscan.io
+    dexes:
+      sushiswap:
+        router: "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+        factory: "0xc35DADB65012eC5796536bD9864eD8773aBc74C4"
+      traderjoe_v2:
+        router: "0xE3Ffc583dC176575eEA7FD9dF2A7c65F7E23a4A1"
+        factory: "0x1886d09C9Ade0c5DB822D85D21678Db67B6c2982"
+    flash_loan_providers:
+      aave_v3: "0x794a61358D6845594F94dc1DB02A252b5b4814aD"
+
+  # 6. Optimism
+  optimism:
+    rpc: ${OPTIMISM_RPC_URL}
+    chain_id: 10
+    native_token: ETH
+    block_explorer: https://optimistic.etherscan.io
+    dexes:
+      uniswap_v3:
+        router: "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+        factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+      velodrome:
+        router: "0x9c12939390052919aF3155f41Bf4280D830D91e1"
+        factory: "0x25CbdDb98b35ab1FF77413456B31EC81A6B6B746"
+    flash_loan_providers:
+      aave_v3: "0x794a61358D6845594F94dc1DB02A252b5b4814aD"
+
+  # 7. Fantom Opera
+  fantom:
+    rpc: ${FANTOM_RPC_URL}
+    chain_id: 250
+    native_token: FTM
+    block_explorer: https://ftmscan.com
+    dexes:
+      spookyswap:
+        router: "0xF491e7B69E4244aCD8C7eBA57c1cA4B54435AeD4"
+        factory: "0x152eE697f2E276fA89E96742e9bB9aB1F2E61bE3"
+      spiritswap:
+        router: "0x16327E3FbDaCA3bcF7E38F5Af2599D2DDc33aE52"
+        factory: "0xEF45d134b73241eDa7703fa787148D9C9F4950b0"
+    flash_loan_providers:
+      aave_v3: "0x794a61358D6845594F94dc1DB02A252b5b4814aD"
+
+  # 8. Cronos
+  cronos:
+    rpc: ${CRONOS_RPC_URL}
+    chain_id: 25
+    native_token: CRO
+    block_explorer: https://cronoscan.com
+    dexes:
+      vvs_finance:
+        router: "0x145863Eb42Cf62847A6Ca784EaF6BfD2c2e6dD2F"
+        factory: "0x3b44b2a187a7b3824131f8db5a74194d0a42fc15"
+      cronaswap:
+        router: "0xcd7d16fB918511BF7269eC4f48d61D79Fb26f918"
+        factory: "0x73A48f8f721EB8cE6A5EeB0A0A8fC0E49E1F50b0"
+    flash_loan_providers:
+      tbd: "0x0000000000000000000000000000000000000000"  # No native flash loans yet
+
+  # 9. Aurora (NEAR)
+  aurora:
+    rpc: ${AURORA_RPC_URL}
+    chain_id: 1313161554
+    native_token: ETH
+    block_explorer: https://aurorascan.dev
+    dexes:
+      trisolaris:
+        router: "0x2CB45Edb4517d5947a3dE8CE974359C248E8Bd0B"
+        factory: "0xc66F594268041dB60507F00703b152492fB176e7"
+      wannaswap:
+        router: "0xa3a1eF5Ae6561572023363862e238eFA84B72B0B"
+        factory: "0x7928D4FeA7b2c90C732c10aFF59cF4031a42BEcB"
+    flash_loan_providers:
+      aurigami: "0x55fEB9A9a6F3D53d72e4B14F5c2287e1b091EaF7"
+
+  # 10. Harmony One
+  harmony:
+    rpc: ${HARMONY_RPC_URL}
+    chain_id: 1666600000
+    native_token: ONE
+    block_explorer: https://explorer.harmony.one
+    dexes:
+      sushiswap:
+        router: "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+        factory: "0xc35DADB65012eC5796536bD9864eD8773aBc74C4"
+      viperswap:
+        router: "0xf012702a5f0e54015362cBCA26a26fc90AA832a3"
+        factory: "0x7D02c116b98d0965ba7B642eE018Ee37549244A8"
+    flash_loan_providers:
+      tbd: "0x0000000000000000000000000000000000000000"  # Limited native flash loan support
+
+# Trading Mode Configuration
+
+  # Missing Router Addresses for Additional Networks
+  celo:
+    rpc: https://1rpc.io/celo
+    chain_id: 42220
+    native_token: CELO
+    block_explorer: https://celoscan.io
+    dexes:
+      ubeswap:  # Celo uses UbeSwap, not Uniswap V2
+        router: "0xE3D8bd6Aed4F5bc3212Fad2C6f3c98b3F27bC58e"
+        factory: "0x62d5b84bE28a183aBB507E125B384122D2C25fAE"
+
+  aurora:
+    rpc: https://mainnet.aurora.dev
+    chain_id: 1313161554
+    native_token: ETH
+    block_explorer: https://aurorascan.dev
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  boba:
+    rpc: https://mainnet.boba.network
+    chain_id: 288
+    native_token: ETH
+    block_explorer: https://bobascan.com
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  metis:
+    rpc: https://andromeda.metis.io/?owner=1088
+    chain_id: 1088
+    native_token: METIS
+    block_explorer: https://andromeda-explorer.metis.io
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  evmos:
+    rpc: https://evmos-evm-rpc.publicnode.com
+    chain_id: 9001
+    native_token: EVMOS
+    block_explorer: https://evm.evmos.org
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  kava:
+    rpc: https://evm.kava.io
+    chain_id: 2222
+    native_token: KAVA
+    block_explorer: https://kavascan.com
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  zksync_era:
+    rpc: https://mainnet.era.zksync.io
+    chain_id: 324
+    native_token: ETH
+    block_explorer: https://explorer.zksync.io
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  scroll:
+    rpc: https://rpc.scroll.io
+    chain_id: 534352
+    native_token: ETH
+    block_explorer: https://scrollscan.com
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  linea:
+    rpc: https://linea-rpc.publicnode.com
+    chain_id: 59144
+    native_token: ETH
+    block_explorer: https://lineascan.build
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
+
+  fuse:
+    rpc: https://rpc.fuse.io
+    chain_id: 122
+    native_token: FUSE
+    block_explorer: https://explorer.fuse.io
+    dexes:
+      uniswap_v2:
+        router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+        factory: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
+mode: "paper"  # or "live"
+
+# API Keys (shared between modes)
+api_keys:
+  etherscan: ${ETHERSCAN_API_KEY}
+  bscscan: ${BSCSCAN_API_KEY}
+  polygonscan: ${POLYGONSCAN_API_KEY}
+  # Add other API keys here
+
+# Trading Configuration
+trading:
+  # General settings
+  min_profit_threshold: 0.01  # 1% minimum profit
+  max_slippage: 0.005  # 0.5%
+  max_gas_price_gwei: 50  # Maximum gas price in Gwei
+  
+  # Risk management
+  max_position_size_eth: 5  # Max position size in ETH
+  max_risk_per_trade: 0.02  # 2% of portfolio
+  max_open_trades: 5  # Maximum number of concurrent trades
+  
+  # Flash loan settings
+  flash_loan_fee: 0.0009  # 0.09% fee for flash loans
+  max_flash_loan_utilization: 0.8  # 80% of available liquidity
+
+# Strategy Configuration
+strategies:
+  flash_loan_arbitrage:
+    enabled: true
+    min_profit_eth: 0.1  # Minimum profit in ETH to execute
+    max_gas_price_gwei: 100  # Max gas price for this strategy
+    max_position_size_eth: 10  # Override global setting
+  
+  sandwich_detection:
+    enabled: true
+    min_profit_eth: 0.05
+    max_sandwich_size_eth: 10  # Maximum size to consider for sandwich detection
+
+# Monitoring & Alerts
+alerts:
+  telegram:
+    enabled: true
+    bot_token: ${TELEGRAM_BOT_TOKEN}  # Set in .env
+    chat_id: ${TELEGRAM_CHAT_ID}  # Set in .env
+  
+  # Health checks
+  health_check_interval: 300  # 5 minutes
+  max_retry_attempts: 3
+  
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/trading_bot.log"
+  max_size_mb: 100
+  backup_count: 3
+
+# API Keys (for reference, should be in .env)
+api_keys:
+  etherscan: ${ETHERSCAN_API_KEY}
+  bscscan: ${BSCSCAN_API_KEY}
+  
+# Performance Settings
+performance:
+  max_workers: 4  # Number of worker threads
+  request_timeout: 30  # Seconds
+  cache_ttl: 300  # 5 minutes
+
+# Development Settings
+dev:
+  test_mode: false  # Set to true to disable actual trades
+  log_all_transactions: true
+  log_all_errors: true

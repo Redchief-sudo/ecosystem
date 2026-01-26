@@ -1,0 +1,67 @@
+# Recommended RPC Configuration Updates
+# Based on automated reliability testing - January 2026
+# These RPCs showed the best performance and reliability
+
+# Primary RPC Updates (replace existing rpc entries)
+networks:
+  ethereum:
+    rpc: https://1rpc.io/eth
+    # Keep existing fallbacks for redundancy
+    
+  bsc:
+    rpc: https://bsc.llamarpc.com
+    # Keep existing fallbacks for redundancy
+    
+  polygon:
+    rpc: https://polygon.llamarpc.com
+    # Keep existing fallbacks for redundancy
+    
+  arbitrum:
+    rpc: https://arbitrum.publicnode.com
+    # Keep existing fallbacks for redundancy
+    
+  base:
+    rpc: https://base.publicnode.com
+    # Keep existing fallbacks for redundancy
+    
+  optimism:
+    rpc: https://mainnet.optimism.io
+    # Keep existing fallbacks for redundancy
+
+# Alternative High-Performance Options (if needed)
+alternative_rpcs:
+  ethereum:
+    - https://eth.llamarpc.com
+    - https://ethereum.publicnode.com
+    - https://eth-mainnet.public.blastapi.io
+    
+  bsc:
+    - https://bsc.publicnode.com
+    - https://bsc-dataseed.binance.org
+    - https://bsc-mainnet.public.blastapi.io
+    
+  polygon:
+    - https://polygon.publicnode.com
+    - https://rpc.ankr.com/polygon
+    - https://polygon-mainnet.public.blastapi.io
+    
+  arbitrum:
+    - https://1rpc.io/arb
+    - https://arbitrum.llamarpc.com
+    - https://rpc.ankr.com/arbitrum
+    
+  base:
+    - https://rpc.ankr.com/base
+    - https://1rpc.io/base
+    - https://base.llamarpc.com
+    
+  optimism:
+    - https://1rpc.io/op
+    - https://optimism.publicnode.com
+    - https://opt-mainnet.g.alchemy.com/v2/${api_keys.alchemy}
+
+# Notes:
+# - Alchemy endpoints work well but require valid API keys
+# - Ankr endpoints require API keys for most chains
+# - Public endpoints (1rpc.io, publicnode.com) showed excellent reliability
+# - Consider rotating between multiple reliable endpoints for load balancing

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtualenv
+venv/
+.venv/
+.venv-test/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+
+# Data
+data/
+database/
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# Backups
+.backups/
+.todo/
+
+# System
+.DS_Store

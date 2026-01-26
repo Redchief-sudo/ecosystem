@@ -1,0 +1,238 @@
+version: "1.0"
+environment: "development"
+log_level: "INFO"
+
+# Network configuration
+network:
+  default_chain_id: 1  # Ethereum Mainnet
+  gas_price_multiplier: 1.2
+  max_gas_price: 200  # Gwei
+  min_gas_price: 10   # Gwei
+
+# Bridge configuration
+bridge:
+  enabled: true
+  max_bridge_amount: 1000000  # $1M max per bridge
+  min_bridge_amount: 10       # $10 min
+  max_slippage_pct: 2.0       # 2% max slippage
+  
+  # Arbitrage settings
+  arbitrage:
+    enabled: true
+    min_profit_threshold: 50   # $50 minimum profit
+    max_bridge_time_minutes: 30
+    min_price_difference_pct: 1.0  # Minimum 1% price difference
+    
+  # Route optimization weights
+  route_weights:
+    cost: 0.3
+    time: 0.2
+    reliability: 0.3
+    liquidity: 0.2
+
+
+
+# Database configuration
+database:
+  url: "sqlite:///trading_bot.db"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+# AI Controller Configuration
+ai_controller:
+  primary_method: "epsilon_greedy"  # CHANGED: ucb → epsilon_greedy (simplest method)
+  exploration_rate: 0.5  # INCREASED: 0.1 → 0.5 for more exploration
+  ucb_confidence: 2.0
+  thompson_beta_prior: [1.0, 1.0]  # YAML will convert to tuple
+  ensemble_size: 5
+  min_strategy_weight: 0.05
+  rebalance_interval: 100
+  min_trades_for_inclusion: 2  # LOWERED: 20 → 2 for new strategies
+  min_win_rate: 0.30  # LOWERED: 0.55 → 0.30 for new strategies
+  min_sharpe_ratio: 0.1  # LOWERED: 0.5 → 0.1 for new strategies
+  max_drawdown: 0.30
+  max_strategies_per_trade: 3
+  position_sizing_method: "kelly"
+  max_position_size_pct: 0.10
+  regime_detection_window: 50
+  performance_decay_factor: 0.95
+  outlier_detection: true
+  health_check_interval: 50
+  auto_disable_poor_strategies: true
+  quarantine_threshold_drawdown: 0.50
+
+# Trading configuration
+trading:
+  starting_balance: 200.00  # Starting balance for paper trading
+  enabled: true
+  mode: "paper"  # or "live" for real trading
+  max_open_trades: 5
+  max_position_size: 0.1  # 10% of portfolio
+  min_position_size: 0.01  # 1% of portfolio
+  default_slippage: 0.005  # 0.5%
+  risk_per_trade: 0.02  # 2% risk per trade
+  max_drawdown: 0.1  # 10% max drawdown
+  min_paper_trades: 20  # minimum paper trades before considering auto-switch
+  min_success_rate: 0.60  # minimum success rate to consider auto-switch
+  base_currency: "USDC"  # Universal base currency for all trades
+  quote_currency: "USDC"  # Quote currency for price calculations
+
+# Paper trading configuration (simulation mode removed)
+paper_trading:
+  enabled: true
+  require_promotion: true  # require promotion gate to switch to live
+
+# Monitoring
+monitoring:
+  enabled: true
+  metrics_port: 8000
+  health_check_interval: 60  # seconds
+  alerting:
+    enabled: true
+    email: "your-email@example.com"
+    webhook: ""
+
+# Notifications
+notifications:
+  telegram:
+    enabled: true  # Set to true and configure bot_token and chat_id to enable
+    bot_token: "${TELEGRAM_BOT_TOKEN}"  # Get from @BotFather on Telegram - set in .env
+    chat_id: "${TELEGRAM_CHAT_ID}"      # Get from @userinfobot on Telegram - set in .env
+
+# Wallets configuration
+wallets:
+  executor:
+    # WARNING: Never commit real private keys to version control!
+    # Use environment variable or .env file for sensitive data
+    private_key: "${PRIVATE_KEY}"  # Set in .env or environment variable
+    address: "0x4305c53B7D9a5d87F005bc41f3188bedFFFF51Ea"  # This is safe to share (public address only)
+
+# Execution Admission Controller Configuration
+execution_admission:
+  enabled: true
+
+  # Identity Checks
+  supported_chains:
+    - polygon
+    - ethereum
+    - bsc
+    - arbitrum
+    - optimism
+    - base
+    - linea
+    - aurora
+    - avalanche
+    - cronos
+    - fantom
+    - gnosis
+    - harmony
+    - moonriver
+    - moonbeam
+    - celo
+    - boba
+
+  deployed_routers:
+    polygon:
+      - uniswap_v2: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+      - sushiswap: "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+    ethereum:
+      - uniswap_v2: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+      - sushiswap: "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
+    bsc:
+      - pancakeswap: "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+    arbitrum:
+      - uniswap_v2: "0x4752ba5DBc23f44D87826276BF6Fd6b1C263D0"
+    optimism:
+      - uniswap_v2: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
+    base:
+      - uniswap_v2: "0x4752ba5DBc23f44D87826276BF6Fd6b1C263D0"
+
+  # Capital Checks
+  minimum_notional_usd:
+    polygon: 3.0
+    ethereum: 5.0
+    bsc: 2.0
+    arbitrum: 2.0
+    optimism: 2.0
+    base: 1.0
+    linea: 1.0
+    aurora: 1.0
+    avalanche: 1.0
+    cronos: 1.0
+    fantom: 1.0
+    gnosis: 1.0
+    harmony: 1.0
+    moonriver: 1.0
+    moonbeam: 1.0
+    celo: 1.0
+    boba: 1.0
+
+  minimum_gas_balance:
+    polygon: 0.1    # MATIC
+    ethereum: 0.01  # ETH
+    bsc: 0.01       # BNB
+    arbitrum: 0.001 # ETH
+    optimism: 0.001 # ETH
+    base: 0.001     # ETH
+
+  # Economics Checks
+  profit_safety_multiplier: 1.5  # Expected profit must be >= gas_cost * multiplier
+  max_slippage_percent: 5.0      # Maximum allowed slippage
+  min_liquidity_usd: 10000       # Minimum liquidity depth required
+
+  # Risk Checks
+  enabled_strategies:
+    - basic
+    - smart_money
+    - risk_caps
+
+  paused_chains: []  # Chains that are operationally paused
+
+  global_risk_limits:
+    max_daily_volume_usd: 10000
+    max_open_positions: 10
+    max_concentration_pct: 25  # Max % of capital in single position
+
+  # Executable tokens per chain
+  executable_tokens:
+    polygon: ['USDC', 'WMATIC', 'QUICK', 'SUSHI', 'AAVE', 'COMP', 'CRV']
+    ethereum: ['USDC', 'WETH', 'UNI', 'AAVE', 'SUSHI', 'COMP', 'MKR']
+    bsc: ['USDC', 'WBNB', 'CAKE', 'SUSHI']
+    arbitrum: ['USDC', 'WETH', 'SUSHI', 'GMX']
+    optimism: ['USDC', 'WETH', 'OP', 'SUSHI']
+    base: ['USDC', 'WETH']
+
+# Gas Treasury Configuration
+gas_treasury:
+  enabled: true
+
+  # Per-chain minimum operating balances
+  minimum_operating_balance:
+    polygon: 1.0    # MATIC
+    ethereum: 0.1   # ETH
+    bsc: 0.1        # BNB
+    arbitrum: 0.01  # ETH
+    optimism: 0.01  # ETH
+    base: 0.01      # ETH
+
+  # Gas reservation settings
+  reservation_buffer_pct: 20  # Reserve 20% extra gas
+  max_reservation_time_seconds: 300  # Release unused gas after 5 minutes
+
+  # Chain disable thresholds (when balance drops below this, disable chain)
+  disable_threshold:
+    polygon: 0.5
+    ethereum: 0.05
+    bsc: 0.05
+    arbitrum: 0.005
+    optimism: 0.005
+    base: 0.005
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/trading_bot.log"
+  max_size: 10  # MB
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
