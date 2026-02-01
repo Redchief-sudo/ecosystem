@@ -24,7 +24,7 @@ from pathlib import Path
 from web3 import Web3
 from web3.contract import Contract
 
-from config.network_config import NetworkConfig
+from config import load_config
 from core.health_check import HealthStatus, standard_health_check
 
 logger = logging.getLogger(__name__)
@@ -111,43 +111,105 @@ class HybridRouterManager:
         self._convert_network_config()
 
     def _convert_network_config(self):
-        """Convert NetworkConfig format to RouterConfig format."""
+        """Convert unified config format to RouterConfig format."""
         self.HYBRID_ROUTER_CONFIG = {}
         
-        for chain_name, network_config in NetworkConfig.NETWORKS.items():
-            router_address = network_config.get('router')
-            if not router_address:
-                continue
-                
-            # Map network to router type
-            router_type = self._map_network_to_router_type(chain_name, network_config.get('dex_name', ''))
-            if not router_type:
-                continue
-                
-            # Create RouterConfig
-            router_config = RouterConfig(
-                address=router_address,
-                router_type=router_type,
-                abi_name=self._get_abi_name_for_router(router_type, chain_name),
-                preferred=True
-            )
-            
-            self.HYBRID_ROUTER_CONFIG[chain_name] = [router_config]
+        # Prefer the injected config if it contains `networks`; otherwise fall back to load_config()
+        unified_config = {}
+        # Require that the caller injects a unified config containing `networks`.
+        # Do not fall back to global `load_config()` to preserve strict dependency injection.
+        if not (isinstance(self.config, dict) and self.config.get("networks")):
+            raise RuntimeError("HybridRouterManager requires an injected config containing 'networks'.")
 
-    def _map_network_to_router_type(self, chain: str, dex_name: str) -> Optional[RouterType]:
-        """Map network and dex name to RouterType."""
-        dex_mapping = {
-            'Uniswap': RouterType.UNISWAP_V3,
-            'PancakeSwap': RouterType.PANCAKESWAP_V2,
-            'QuickSwap': RouterType.QUICKSWAP,
-            'SushiSwap': RouterType.SUSHISWAP,
-            'TraderJoe': RouterType.TRADERJOE,
-            'SpookySwap': RouterType.SPOOKYSWAP,
-            'Camelot': RouterType.CAMELOT,
-            'HoneySwap': RouterType.HONEYSWAP,
+        networks = self.config.get("networks", {})
+        
+        for chain_name, network_config in networks.items():
+            if not network_config.get("enabled", True):
+                continue
+                
+            # Get router addresses from unified config
+            routers = network_config.get("routers", {})
+            router_address = network_config.get("router")  # Default router
+            
+            if not routers and not router_address:
+                continue
+                
+            chain_routers = []
+            
+            # Process individual routers
+            for router_name, router_addr in routers.items():
+                if router_addr:  # Skip empty addresses
+                    router_type = self._map_router_name_to_type(router_name)
+                    if router_type:
+                        router_config = RouterConfig(
+                            address=router_addr,
+                            router_type=router_type,
+                            abi_name=self._get_abi_name_for_router(router_type, chain_name),
+                            preferred=True
+                        )
+                        chain_routers.append(router_config)
+            
+            # Process default router if no individual routers found
+            if not chain_routers and router_address:
+                router_type = self._infer_router_type_from_chain(chain_name)
+                if router_type:
+                    router_config = RouterConfig(
+                        address=router_address,
+                        router_type=router_type,
+                        abi_name=self._get_abi_name_for_router(router_type, chain_name),
+                        preferred=True
+                    )
+                    chain_routers.append(router_config)
+            
+            if chain_routers:
+                self.HYBRID_ROUTER_CONFIG[chain_name] = chain_routers
+
+    def _map_router_name_to_type(self, router_name: str) -> Optional[RouterType]:
+        """Map router name to RouterType."""
+        router_mapping = {
+            'uniswap_v3': RouterType.UNISWAP_V3,
+            'uniswap_v2': RouterType.UNISWAP_V2,
+            'pancakeswap_v2': RouterType.PANCAKESWAP_V2,
+            'pancakeswap_v3': RouterType.PANCAKESWAP_V3,
+            'sushiswap': RouterType.SUSHISWAP,
+            'quickswap': RouterType.QUICKSWAP,
+            'traderjoe': RouterType.TRADERJOE,
+            'spookyswap': RouterType.SPOOKYSWAP,
+            'camelot': RouterType.CAMELOT,
+            'honeyswap': RouterType.HONEYSWAP,
+            'apeswap': RouterType.PANCAKESWAP_V2,  # Treat as PancakeSwap variant
+            'pangolin': RouterType.UNISWAP_V2,  # Treat as Uniswap V2 variant
+            'klayswap': RouterType.UNISWAP_V2,  # Treat as Uniswap V2 variant
+            'trisolaris': RouterType.UNISWAP_V3,  # Treat as Uniswap V3 variant
+            'sushi': RouterType.SUSHISWAP,  # Short alias
         }
         
-        return dex_mapping.get(dex_name)
+        return router_mapping.get(router_name.lower())
+    
+    def _infer_router_type_from_chain(self, chain: str) -> Optional[RouterType]:
+        """Infer router type based on chain name."""
+        chain_defaults = {
+            'ethereum': RouterType.UNISWAP_V3,
+            'bsc': RouterType.PANCAKESWAP_V2,
+            'polygon': RouterType.QUICKSWAP,
+            'arbitrum': RouterType.SUSHISWAP,
+            'optimism': RouterType.UNISWAP_V3,
+            'avalanche': RouterType.TRADERJOE,
+            'fantom': RouterType.SPOOKYSWAP,
+            'base': RouterType.UNISWAP_V3,
+            'linea': RouterType.UNISWAP_V3,
+            'zksync': RouterType.UNISWAP_V3,
+            'scroll': RouterType.UNISWAP_V3,
+            'moonbeam': RouterType.SUSHISWAP,
+            'moonriver': RouterType.SUSHISWAP,
+            'celo': RouterType.SUSHISWAP,
+            'aurora': RouterType.UNISWAP_V3,
+            'metis': RouterType.SUSHISWAP,
+            'boba': RouterType.SUSHISWAP,
+            'klaytn': RouterType.UNISWAP_V2,
+        }
+        
+        return chain_defaults.get(chain.lower(), RouterType.UNISWAP_V3)
 
     def _get_abi_name_for_router(self, router_type: RouterType, chain: str) -> str:
         """Get ABI name for router type."""

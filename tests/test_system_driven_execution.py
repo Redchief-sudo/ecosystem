@@ -8,9 +8,8 @@ sys.path.insert(0, '/home/damien/ecosystem')
 
 from decimal import Decimal
 
-from trading.models import MarketData, TokenInfo, TradeOpportunity
-from trading.trade_engine import DecisionOutcome, StrategyDecision
-from trading.trade_optimizer import TradeIntentCompiler, TradeOptimizer
+from trading.models import MarketData, TokenInfo, TradeOpportunity, DecisionOutcome, StrategyDecision
+from trading.trade_intent.trade_optimizer import TradeIntentCompiler, TradeOptimizer
 
 print("🎯 Testing OPTION B: System-Driven Execution...")
 

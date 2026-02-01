@@ -68,6 +68,7 @@ class RiskLimit:
     unit: str  # Now only accepts 'ratio', 'usd', 'count'
     enforcement: str
     description: str = ""
+    enabled: bool = True
 
     def __post_init__(self):
         if self.enforcement not in ["hard", "soft", "warning"]:
@@ -106,8 +107,10 @@ class RiskLimit:
                 limit_type=self.limit_type,
                 threshold=self.threshold,
                 current_value=current_value,
-                asset_id=asset_id,  # Added
-                description=self.description
+                enforcement=self.enforcement,
+                unit=self.unit,
+                message=f"{self.description}: {current_value} exceeds threshold {self.threshold}",
+                asset_id=asset_id
             )
 
         return None
@@ -134,25 +137,22 @@ class RiskLimits:
     def get_hard_limits(self) -> List[RiskLimit]:
         return [limit for limit in self.limits if limit.enforcement == 'hard']
 
+    def get_soft_limits(self) -> List[RiskLimit]:
+        return [limit for limit in self.limits if limit.enforcement == 'soft']
+
+    def get_warning_limits(self) -> List[RiskLimit]:
+        return [limit for limit in self.limits if limit.enforcement == 'warning']
+
     def get_limit(self, limit_type: LimitType) -> Optional[RiskLimit]:
         """Get a specific limit by type."""
-        return self.limits.get(limit_type)
+        for limit in self.limits:
+            if limit.limit_type == limit_type:
+                return limit
+        return None
 
-    def get_enabled_limits(self) -> Dict[LimitType, RiskLimit]:
+    def get_enabled_limits(self) -> List[RiskLimit]:
         """Get all enabled limits."""
-        return {k: v for k, v in self.limits.items() if v.enabled}
-
-    def get_hard_limits(self) -> Dict[LimitType, RiskLimit]:
-        """Get all hard limits (violations block trades)."""
-        return {k: v for k, v in self.limits.items() if v.is_hard_limit() and v.enabled}
-
-    def get_soft_limits(self) -> Dict[LimitType, RiskLimit]:
-        """Get all soft limits (violations allow but constrain trades)."""
-        return {k: v for k, v in self.limits.items() if v.is_soft_limit() and v.enabled}
-
-    def get_warning_limits(self) -> Dict[LimitType, RiskLimit]:
-        """Get all warning-only limits (no enforcement)."""
-        return {k: v for k, v in self.limits.items() if v.is_warning_only() and v.enabled}
+        return [limit for limit in self.limits if limit.enabled]
 
 
 class LimitCalculator:
@@ -205,7 +205,7 @@ class LimitCalculator:
 def get_conservative_limits() -> RiskLimits:
     return RiskLimits([
         RiskLimit(LimitType.CONCENTRATION, 0.20, 'ratio', 'hard', 'Max 20% concentration'),
-        RiskLimit(LimitType.PORTFOLIO_EXPOSURE, 0.50, 'ratio', 'hard', 'Max 50% exposure'),
+        RiskLimit(LimitType.TOTAL_EXPOSURE, 0.50, 'ratio', 'hard', 'Max 50% exposure'),
         RiskLimit(LimitType.DRAWDOWN, 0.10, 'ratio', 'hard', 'Max 10% drawdown'),
         RiskLimit(LimitType.MAX_DRAWDOWN_RATIO, 0.15, 'ratio', 'soft', 'Max drawdown ratio'),
         # Add other limits as needed
@@ -214,7 +214,7 @@ def get_conservative_limits() -> RiskLimits:
 def get_moderate_limits() -> RiskLimits:
     return RiskLimits([
         RiskLimit(LimitType.CONCENTRATION, 0.25, 'ratio', 'hard', 'Max 25% concentration'),
-        RiskLimit(LimitType.PORTFOLIO_EXPOSURE, 0.75, 'ratio', 'soft', 'Max 75% exposure'),
+        RiskLimit(LimitType.TOTAL_EXPOSURE, 0.75, 'ratio', 'soft', 'Max 75% exposure'),
         RiskLimit(LimitType.DRAWDOWN, 0.15, 'ratio', 'hard', 'Max 15% drawdown'),
         RiskLimit(LimitType.MAX_DRAWDOWN_RATIO, 0.20, 'ratio', 'soft', 'Max drawdown ratio'),
         # Add other limits as needed
@@ -223,7 +223,7 @@ def get_moderate_limits() -> RiskLimits:
 def get_aggressive_limits() -> RiskLimits:
     return RiskLimits([
         RiskLimit(LimitType.CONCENTRATION, 0.30, 'ratio', 'soft', 'Max 30% concentration'),
-        RiskLimit(LimitType.PORTFOLIO_EXPOSURE, 1.0, 'ratio', 'soft', 'Max 100% exposure'),
+        RiskLimit(LimitType.TOTAL_EXPOSURE, 1.0, 'ratio', 'soft', 'Max 100% exposure'),
         RiskLimit(LimitType.DRAWDOWN, 0.20, 'ratio', 'soft', 'Max 20% drawdown'),
         RiskLimit(LimitType.MAX_DRAWDOWN_RATIO, 0.25, 'ratio', 'soft', 'Max drawdown ratio'),
         # Add other limits as needed
@@ -232,7 +232,7 @@ def get_aggressive_limits() -> RiskLimits:
 def get_paper_trading_limits() -> RiskLimits:
     return RiskLimits([
         RiskLimit(LimitType.CONCENTRATION, 0.50, 'ratio', 'hard', 'Max 50% concentration'),  # Hard enforcement
-        RiskLimit(LimitType.PORTFOLIO_EXPOSURE, 1.0, 'ratio', 'hard', 'Max 100% exposure'),
+        RiskLimit(LimitType.TOTAL_EXPOSURE, 1.0, 'ratio', 'hard', 'Max 100% exposure'),
         RiskLimit(LimitType.DRAWDOWN, 0.25, 'ratio', 'hard', 'Max 25% drawdown'),
         RiskLimit(LimitType.MAX_DRAWDOWN_RATIO, 0.30, 'ratio', 'hard', 'Max drawdown ratio'),
         # Add other limits as needed

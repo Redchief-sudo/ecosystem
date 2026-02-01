@@ -8,7 +8,7 @@ sys.path.insert(0, '/home/damien/ecosystem')
 from decimal import Decimal
 
 from trading.models import MarketData, TokenInfo, TradeOpportunity
-from trading.trade_optimizer import ExecutionPlan, TradeIntentCompiler
+from trading.trade_intent.trade_optimizer import ExecutionPlan, TradeIntentCompiler
 
 print("🎯 Testing Structural Fixes: MarketData Reality & ExecutionPlan Interface...")
 
@@ -122,7 +122,8 @@ try:
     )
     
     # Mock decision
-    from trading.trade_engine import DecisionOutcome, StrategyDecision
+    from trading.execution.trade_engine import TradingEngine
+    from trading.models import DecisionOutcome, StrategyDecision
     decision = StrategyDecision(
         outcome=DecisionOutcome.APPROVED,
         decision_id="test_123",

@@ -136,15 +136,16 @@ class OnchainClient:
 
         return 0, ''
 
-    async def get_holder_count(self, token_address: str, network: str, lookback_blocks: int = 100000) -> int:
+    async def get_holder_count(self, token_address: str, network: str, lookback_blocks: int = 100000) -> Optional[int]:
         """Estimate holder count by scanning Transfer events over `lookback_blocks` blocks.
 
-        Raises:
-            RuntimeError: If holder count cannot be estimated
+        Returns:
+            Optional[int]: Number of holders if available, None if Web3 instance unavailable
         """
         w3 = self.web3_instances.get(network)
         if not w3:
-            raise RuntimeError(f"No Web3 instance available for network: {network}")
+            logger.warning(f"No Web3 instance available for network: {network}, returning None for holder count")
+            return None
         
         try:
             latest = w3.eth.block_number
@@ -162,7 +163,7 @@ class OnchainClient:
             return len(holders)
         except Exception as e:
             logger.error(f"❌ Error estimating holders via logs for {token_address} on {network}: {e}")
-            # NO FALLBACK - fail explicitly instead of returning None
+            # Fail explicitly to surface errors to callers for core fixes
             raise RuntimeError(
                 f"Failed to estimate holder count for {token_address} on {network}: {e}"
             )

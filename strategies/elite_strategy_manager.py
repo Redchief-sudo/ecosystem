@@ -8,6 +8,7 @@ from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
 from .base_strategy import BaseStrategy, TradeSignal, SignalType
+from .signal_types import NormalizedSignal
 from core.health_check import HealthStatus, standard_health_check
 
 logger = logging.getLogger(__name__)
@@ -16,22 +17,6 @@ logger = logging.getLogger(__name__)
 class CircuitBreakerState(Enum):
     CLOSED = auto()
     OPEN = auto()
-
-
-@dataclass
-class NormalizedSignal:
-    strategy_id: str
-    signal_type: SignalType
-    direction: str  # "buy" | "sell"
-    confidence: float
-    expected_edge: float
-    max_risk: float
-    token_address: str
-    token_symbol: str
-    price: float
-    ttl: int
-    created_at: datetime
-    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class SignalExecutionResult:
@@ -85,6 +70,7 @@ class SignalNormalizer:
             token_address=trade_signal.token_address,
             token_symbol=trade_signal.token_symbol,
             price=trade_signal.price,
+            position_size=trade_signal.position_size,
             ttl=SignalNormalizer._calculate_ttl(trade_signal.signal_type),
             created_at=datetime.now(timezone.utc),
             metadata=trade_signal.metadata or {},
@@ -163,7 +149,13 @@ class EliteStrategyManager:
             self.circuit_breaker_states[sid] = (CircuitBreakerState.CLOSED, 0.0)
 
     def _get_strategy_name(self, strategy: BaseStrategy) -> str:
-        return getattr(strategy, "strategy_id", strategy.__class__.__name__)
+        strategy_id = getattr(strategy, "strategy_id", None)
+        if callable(strategy_id):
+            return strategy_id()
+        elif isinstance(strategy_id, str):
+            return strategy_id
+        else:
+            return strategy.__class__.__name__
 
     def _is_strategy_enabled(self, strategy: BaseStrategy) -> bool:
         return getattr(strategy, "enabled", True)
@@ -180,6 +172,7 @@ class EliteStrategyManager:
 
         if state == CircuitBreakerState.OPEN:
             if time.time() - last_failure < self.circuit_breaker_timeout:
+                logger.debug(f"[DEBUG] {strategy_id}: Circuit breaker is OPEN")
                 return SignalExecutionResult(
                     strategy_id=strategy_id,
                     success=False,
@@ -191,13 +184,16 @@ class EliteStrategyManager:
         start = time.time()
 
         try:
+            logger.debug(f"[DEBUG] {strategy_id}: Starting evaluation (timeout: {timeout}s)")
             trade_signal = await asyncio.wait_for(
                 strategy.evaluate_token(market_data),
                 timeout=timeout,
             )
             exec_time = time.time() - start
+            logger.debug(f"[DEBUG] {strategy_id}: Signal result={trade_signal}, exec_time={exec_time:.3f}s")
 
             if trade_signal is None:
+                logger.debug(f"[DEBUG] {strategy_id}: No signal generated (None)")
                 return SignalExecutionResult(
                     strategy_id=strategy_id,
                     success=False,
@@ -210,6 +206,7 @@ class EliteStrategyManager:
                 market_data,
             )
 
+            logger.debug(f"[DEBUG] {strategy_id}: Signal normalized successfully")
             return SignalExecutionResult(
                 strategy_id=strategy_id,
                 success=True,
@@ -219,6 +216,7 @@ class EliteStrategyManager:
 
         except asyncio.TimeoutError:
             exec_time = time.time() - start
+            logger.debug(f"[DEBUG] {strategy_id}: TIMEOUT after {exec_time:.3f}s")
             return SignalExecutionResult(
                 strategy_id=strategy_id,
                 success=False,
@@ -229,6 +227,7 @@ class EliteStrategyManager:
 
         except Exception as e:
             exec_time = time.time() - start
+            logger.debug(f"[DEBUG] {strategy_id}: EXCEPTION - {type(e).__name__}: {str(e)}")
             return SignalExecutionResult(
                 strategy_id=strategy_id,
                 success=False,
@@ -257,6 +256,10 @@ class EliteStrategyManager:
             for strategy in self.strategies
             if self._is_strategy_enabled(strategy)
         }
+
+        logger.debug(f"[DEBUG] Strategy Manager: Executing {len(tasks)} strategies")
+        for name in tasks.keys():
+            logger.debug(f"[DEBUG]   - {name}")
 
         results = await asyncio.gather(*tasks.values(), return_exceptions=True)
 

@@ -14,13 +14,12 @@ import asyncio
 import logging
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from networks.cross_chain_mapper import CrossChainAddressMapper
-from networks.multi_chain_manager import MultiChainManager
-from typing import Union
+from networks.universal_network_manager import UniversalNetworkManager
 from trading.bridges.elite_bridge_manager import (BridgeStatus,
                                                   BridgeTransaction,
                                                   EliteBridgeManager,
@@ -78,7 +77,7 @@ class BridgeIntegrationAdapter:
     """
     
     def __init__(self, bridge_manager: EliteBridgeManager, 
-                 multi_chain_manager: Union[Any, 'UniversalNetworkManager', 'MultiChainManager'],  # Support all manager types
+                 multi_chain_manager: UniversalNetworkManager,
                  trade_executor: TradeExecutor):
         """Initialize the bridge integration adapter."""
         self.bridge_manager = bridge_manager
@@ -145,24 +144,8 @@ class BridgeIntegrationAdapter:
         # Get supported chains from bridge manager
         for chain_id, chain in self.bridge_manager.chains.items():
             try:
-                # Get Web3 connection
-                # Support MultiChainManager and UniversalNetworkManager
-                web3 = None
-                
-                if hasattr(self.multi_chain_manager, 'get_web3'):
-                    web3 = self.multi_chain_manager.get_web3(chain_id)
-                elif hasattr(self.multi_chain_manager, 'get_w3'):
-                    web3 = self.multi_chain_manager.get_w3(chain_id)
-                elif hasattr(self.multi_chain_manager, 'get_web3_client'):
-                    # UniversalNetworkManager
-                    web3 = self.multi_chain_manager.get_web3_client(chain_id)
-                elif hasattr(self.multi_chain_manager, 'clients') and chain_id in self.multi_chain_manager.clients:
-                    # Direct access to clients dict
-                    client = self.multi_chain_manager.clients[chain_id]
-                    if hasattr(client, 'client') and hasattr(client.client, 'eth'):
-                        web3 = client.client
-                    elif hasattr(client, 'eth'):
-                        web3 = client
+                # Get Web3 connection from UniversalNetworkManager
+                web3 = self.multi_chain_manager.get_web3(chain_id)
                 
                 if not web3:
                     logger.warning(f"Could not get Web3 client for chain {chain_id}")
@@ -500,7 +483,7 @@ class BridgeIntegrationAdapter:
 
 
 # Integration helper functions
-async def initialize_bridge_integration(config: Dict, multi_chain_manager: Union[MultiChainManager, Any],
+async def initialize_bridge_integration(config: Dict, multi_chain_manager: UniversalNetworkManager,
                                       trade_executor: TradeExecutor) -> BridgeIntegrationAdapter:
     """Initialize bridge integration with existing system."""
     # Initialize bridge manager

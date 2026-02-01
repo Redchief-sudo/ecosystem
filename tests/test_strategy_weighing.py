@@ -45,7 +45,7 @@ async def test_strategy_weighing():
             'max_drawdown': 0.3
         }
         
-        ai_controller = EliteAsyncAIController(config=config, total_capital=Decimal('100000'))
+        ai_controller = EliteAsyncAIController(config=config)
         await ai_controller.initialize()
         
         print(f"✅ AI Controller initialized with {len(ai_controller.strategies)} strategies")

@@ -407,6 +407,6 @@ class TokenDeduplicator:
         logger.info("Token deduplicator cleared")
 
 
-# Global deduplicator instance
-token_deduplicator = TokenDeduplicator()
+# Global deduplicator instance (60 second TTL to allow tokens to be reprocessed per trading cycle)
+token_deduplicator = TokenDeduplicator(ttl_seconds=60)
 

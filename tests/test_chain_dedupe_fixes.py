@@ -54,7 +54,6 @@ def test_deduplicator_pair_specific_logic():
 
     print("✅ Deduplicator correctly treats same token in different pairs as separate opportunities")
     print(f"   Unique tokens: {len(unique_tokens)}, Duplicates: {dedupe.duplicate_count}")
-    return True
 
 def test_deduplicator_cross_chain_behavior():
     """Test that same token on different chains are treated as separate opportunities."""
@@ -96,7 +95,6 @@ def test_deduplicator_cross_chain_behavior():
 
     print("✅ Deduplicator correctly treats same token on different chains as separate opportunities")
     print(f"   Unique tokens: {len(unique_tokens)}, Duplicates: {dedupe.duplicate_count}")
-    return True
 
 def test_chain_normalizer():
     """Test that chain normalizer works correctly for DexScreener chain IDs."""
@@ -120,7 +118,6 @@ def test_chain_normalizer():
         assert normalized == expected_chain, f"Expected {expected_chain}, got {normalized} for input {input_chain}"
 
     print("✅ Chain normalizer correctly handles DexScreener chain IDs")
-    return True
 
 def test_scanner_chain_filtering_logic():
     """Test the scanner's chain filtering logic (simulated)."""
@@ -155,7 +152,6 @@ def test_scanner_chain_filtering_logic():
         assert result == expected, f"Chain filtering failed: pair_chain_id={pair_chain_id}, requested={requested_chain}, expected={expected}, got={result}"
 
     print("✅ Scanner chain filtering logic correctly prevents cross-chain fan-out")
-    return True
 
 def test_deduplication_key_format():
     """Test that deduplication keys are formatted correctly."""
@@ -185,7 +181,6 @@ def test_deduplication_key_format():
         assert is_dup2, f"Second call should be duplicate for {expected_key}"
 
     print("✅ Deduplication key format correctly includes chain:address:pair_address")
-    return True
 
 def main():
     """Run all tests."""

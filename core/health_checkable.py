@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 
 # Import HealthStatus directly from utils to avoid circular imports
 try:
-    from utils.health_check import HealthStatus
+    from core.health_check import HealthStatus
 except ImportError:
     # Fallback for when utils.health_check is not available
     from dataclasses import dataclass

@@ -4,8 +4,8 @@ registry = StrategyRegistry()
 
 # Import all strategies
 from .features.momentum import EliteMomentumStrategy
-from .features.mean_reversion import MeanReversionStrategy
-from .features.breakout import EliteBreakoutStrategy
+from .features.mean_reversion import MeanReversionStrategyV2 as MeanReversionStrategy
+from .features.breakout import EliteBreakoutStrategyV2 as EliteBreakoutStrategy
 from .features.volatility_breakout import VolatilityBreakoutStrategy
 from .features.aggressive import EliteAggressiveStrategy
 from .features.risk_caps import RiskCapsStrategy

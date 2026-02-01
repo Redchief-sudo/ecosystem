@@ -371,3 +371,51 @@ class StrategyMetrics:
             ),
         }
 
+
+@dataclass
+class TradeSignal:
+    """
+    Trade signal for execution system.
+    
+    Contains all information needed for trade execution including
+    entry/exit signals, position sizing, and risk parameters.
+    """
+    token_address: str
+    chain: str
+    action: DecisionAction  # BUY/SELL/HOLD
+    confidence: float  # 0.0 to 1.0
+    entry_price: Optional[float] = None
+    exit_price: Optional[float] = None
+    position_size: float = 0.0  # Position size in base currency
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    strategy_id: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def is_valid(self) -> bool:
+        """Check if signal is valid for execution."""
+        if not (0.0 <= self.confidence <= 1.0):
+            return False
+        if self.position_size <= 0:
+            return False
+        if not self.token_address or not self.chain:
+            return False
+        return True
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "token_address": self.token_address,
+            "chain": self.chain,
+            "action": self.action.name if isinstance(self.action, DecisionAction) else self.action,
+            "confidence": self.confidence,
+            "entry_price": self.entry_price,
+            "exit_price": self.exit_price,
+            "position_size": self.position_size,
+            "stop_loss": self.stop_loss,
+            "take_profit": self.take_profit,
+            "timestamp": self.timestamp.isoformat(),
+            "strategy_id": self.strategy_id,
+            "metadata": self.metadata,
+        }
+

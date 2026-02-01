@@ -28,7 +28,13 @@ class TradeSignal:
     signal_type: SignalType
     confidence: float
     score: float
-    meta: Optional[Dict[str, Any]] = None
+    price: float = 0.0
+    stop_loss: float = 0.0
+    take_profit: float = 0.0
+    position_size: float = 0.0
+    token_address: Optional[str] = None
+    token_symbol: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -52,6 +58,8 @@ class BaseStrategy(ABC):
     def __init__(self, strategy_config: Dict[str, Any], global_config: Dict[str, Any]):
         self.strategy_config = strategy_config
         self.global_config = global_config
+        # Runtime enabled/disabled state (can be changed at runtime)
+        self.enabled = strategy_config.get("enabled", True) if strategy_config else True
 
     def _safe(self, data, key, default=None):
         """Safely extract value from dictionary."""
@@ -289,9 +297,9 @@ class BaseStrategy(ABC):
         stop_loss: float,
         take_profit: float,
         metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> TradeSignal:
         """
-        Create a standardized trade signal dictionary.
+        Create a standardized trade signal as a TradeSignal dataclass.
 
         Args:
             signal_type: SignalType (BUY, SELL, NEUTRAL)
@@ -303,20 +311,20 @@ class BaseStrategy(ABC):
             metadata: Additional signal metadata
 
         Returns:
-            Signal dictionary
+            TradeSignal object
         """
         # Calculate score based on confidence and position size
         score = confidence * (1 + position_size)
 
-        return {
-            "strategy_id": self.STRATEGY_NAME,
-            "signal_type": signal_type,
-            "confidence": confidence,
-            "score": score,
-            "price": price,
-            "stop_loss": stop_loss,
-            "take_profit": take_profit,
-            "position_size": position_size,
-            "metadata": metadata or {},
-        }
+        return TradeSignal(
+            strategy_id=self.STRATEGY_NAME,
+            signal_type=signal_type,
+            confidence=confidence,
+            score=score,
+            price=price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+            position_size=position_size,
+            metadata=metadata or {},
+        )
 

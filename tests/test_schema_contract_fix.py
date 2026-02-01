@@ -7,7 +7,7 @@ sys.path.insert(0, '/home/damien/ecosystem')
 
 from decimal import Decimal
 
-from trading.trade_optimizer import ExecutionPlan, GasStrategy, OrderType
+from trading.trade_intent.trade_optimizer import ExecutionPlan, GasStrategy, OrderType
 
 # Test ExecutionPlan with new required fields
 print("🎯 Testing ExecutionPlan schema contract fix...")

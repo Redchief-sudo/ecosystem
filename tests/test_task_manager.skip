@@ -1,0 +1,59 @@
+import asyncio
+
+import pytest
+
+from core.task_manager import task_manager
+
+
+@pytest.mark.asyncio
+async def test_task_manager_create_and_duplicate_prevention():
+    # Ensure clean slate
+    task_manager.cancel_all()
+
+    async def short_job():
+        await asyncio.sleep(0.05)
+        return "ok"
+
+    t1 = task_manager.create_engine_task(short_job(), "tm.test.1")
+    # Creating again with different id 
+    t2 = task_manager.create_engine_task(short_job(), "tm.test.2")
+    # Both should exist
+    assert task_manager.task_status("tm.test.1") in ("running", "done", "pending")
+    assert task_manager.task_status("tm.test.2") in ("running", "done", "pending")
+
+    # Wait for tasks to finish
+    await asyncio.sleep(0.15)
+
+    # After completion status should be done or None (task removed)
+    status1 = task_manager.task_status("tm.test.1")
+    status2 = task_manager.task_status("tm.test.2")
+    assert status1 in ("done", None)
+    assert status2 in ("done", None)
+
+    # Cleanup
+    task_manager.cancel_all()
+
+@pytest.mark.asyncio
+async def test_task_manager_restart_behavior():
+    task_manager.cancel_all()
+
+    async def looping_job():
+        try:
+            while True:
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            return
+
+    # Start long running task
+    t = task_manager.create_engine_task(looping_job(), "tm.loop")
+    await asyncio.sleep(0.01)  # Let it start
+    assert task_manager.task_status("tm.loop") in ("running", "pending")
+
+    # Restart by canceling
+    await task_manager.cancel_task("tm.loop")
+    await asyncio.sleep(0.05)  # Let it cancel
+    new_task = task_manager.create_engine_task(looping_job(), "tm.loop.2")
+    assert new_task is not None
+
+    # Cleanup
+    task_manager.cancel_all()

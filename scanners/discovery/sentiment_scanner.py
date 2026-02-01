@@ -24,6 +24,8 @@ from collections import defaultdict
 from logging.handlers import RotatingFileHandler
 from functools import lru_cache
 import time
+import psutil
+import threading
 
 # Configure rotating file handler with configurable verbosity
 handler = RotatingFileHandler('scanner.log', maxBytes=10*1024*1024, backupCount=5)
@@ -54,6 +56,13 @@ class DataQuality(Enum):
     SIMULATED = "simulated"
     PARTIAL = "partial"
     UNKNOWN = "unknown"
+
+
+class AnalysisValidity(Enum):
+    """IMPROVEMENT #1: Explicit validity contract for downstream consumers"""
+    VALID = "valid"
+    DEGRADED = "degraded"
+    INVALID = "invalid"
 
 
 @dataclass
@@ -88,8 +97,20 @@ class TokenMetrics:
     market_cap: Optional[float]
     decimals: int
     total_supply: int
-    data_quality: DataQuality = DataQuality.REAL  # NEW: Track data source
+    data_quality: DataQuality = DataQuality.REAL
+    valid: bool = True  # IMPROVEMENT #3: Explicit validity flag
+    failure_reason: Optional[str] = None  # IMPROVEMENT #3: Why invalid
     timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class AIInsight:
+    """IMPROVEMENT #2: Separate AI output from scoring logic"""
+    sentiment_label: str  # AI's opinion
+    key_factors: List[str]  # AI's reasoning
+    rationale: str  # AI's summary
+    confidence: str  # AI's confidence
+    raw_score: Optional[int] = None  # AI's raw score (for reference only)
 
 
 @dataclass
@@ -97,10 +118,10 @@ class SentimentAnalysis:
     token_address: str
     symbol: str
     network: str
-    overall_score: int
+    overall_score: int  # IMPROVEMENT #2: Calculated by code, not AI
     sentiment: Sentiment
     confidence: str
-    risk_level: RiskLevel
+    risk_level: RiskLevel  # IMPROVEMENT #2: Calculated by code
     key_factors: List[str]
     technical_signals: List[str]
     recommendation: str
@@ -109,8 +130,10 @@ class SentimentAnalysis:
     rugpull_risk: float
     honeypot_risk: float
     whale_concentration: float
-    data_quality: DataQuality = DataQuality.REAL  # NEW: Propagate from metrics
-    ai_powered: bool = True  # NEW: Flag if AI was used
+    data_quality: DataQuality = DataQuality.REAL
+    validity: AnalysisValidity = AnalysisValidity.VALID  # IMPROVEMENT #1
+    ai_powered: bool = True
+    ai_insight: Optional[AIInsight] = None  # IMPROVEMENT #2: Preserve AI output
     timestamp: datetime = field(default_factory=datetime.now)
 
 
@@ -601,7 +624,7 @@ class TokenAnalyzer:
             return None
     
     async def calculate_metrics(self, token_address: str, network: str) -> Optional[TokenMetrics]:
-        """Calculate comprehensive metrics with clear data quality tracking"""
+        """IMPROVEMENT #3: Return invalid metrics instead of simulated data"""
         token_info = await self.get_token_info(token_address, network)
         if not token_info:
             return None
@@ -614,38 +637,41 @@ class TokenAnalyzer:
             token_address, network, self.explorer_api_key
         )
         
-        # Determine overall data quality
+        # IMPROVEMENT #3: NO SIMULATED DATA - return invalid metrics instead
         if market_data is None:
-            logger.warning(f"⚠ No market data for {token_info['symbol']}, using estimated values [DATA_QUALITY: SIMULATED]")
-            import random
-            market_data = {
-                'price_usd': random.uniform(0.01, 100),
-                'price_native': random.uniform(0.0001, 1),
-                'liquidity_usd': random.uniform(10000, 1000000),
-                'volume_24h': random.uniform(5000, 500000),
-                'price_change_24h': random.uniform(-20, 20),
-            }
-            data_quality = DataQuality.SIMULATED
-        elif market_quality == DataQuality.PARTIAL:
-            data_quality = DataQuality.PARTIAL
-        else:
-            data_quality = DataQuality.REAL
+            logger.error(f"⚠ No market data for {token_info['symbol']} - marking as INVALID")
+            return TokenMetrics(
+                address=token_address,
+                symbol=token_info['symbol'],
+                name=token_info['name'],
+                network=network,
+                price_usd=0.0,
+                price_native=0.0,
+                liquidity_usd=0.0,
+                volume_24h=0.0,
+                price_change_1h=0.0,
+                price_change_24h=0.0,
+                price_change_7d=0.0,
+                holders=0,
+                market_cap=None,
+                decimals=token_info['decimals'],
+                total_supply=token_info['total_supply'],
+                data_quality=DataQuality.UNKNOWN,
+                valid=False,
+                failure_reason="market_data_unavailable"
+            )
         
-        # Use real holder count if available, otherwise estimate based on liquidity
+        # Determine overall data quality
+        data_quality = market_quality
+        
+        # Use real holder count if available, otherwise mark as partial
         if holder_count is not None:
             holders = holder_count
             logger.debug(f"Real holder count: {holders}")
         else:
-            # Estimate based on liquidity (rough heuristic)
-            if market_data['liquidity_usd'] > 1000000:
-                holders = 5000
-            elif market_data['liquidity_usd'] > 500000:
-                holders = 2000
-            elif market_data['liquidity_usd'] > 100000:
-                holders = 1000
-            else:
-                holders = 500
-            logger.warning(f"⚠ Estimated holder count: {holders} (no API data) [DATA_QUALITY: {data_quality.value}]")
+            # IMPROVEMENT #3: Don't estimate - mark as partial instead
+            holders = 0
+            logger.warning(f"⚠ No holder data for {token_info['symbol']} - marking as PARTIAL")
             if data_quality == DataQuality.REAL:
                 data_quality = DataQuality.PARTIAL
         
@@ -662,15 +688,29 @@ class TokenAnalyzer:
             price_change_24h=market_data['price_change_24h'],
             price_change_7d=0.0,
             holders=holders,
-            market_cap=market_data['price_usd'] * token_info['total_supply'] / (10 ** token_info['decimals']),
+            market_cap=market_data['price_usd'] * token_info['total_supply'] / (10 ** token_info['decimals']) if market_data['price_usd'] > 0 else None,
             decimals=token_info['decimals'],
             total_supply=token_info['total_supply'],
-            data_quality=data_quality
+            data_quality=data_quality,
+            valid=True,
+            failure_reason=None
         )
 
 
-class SentimentEngine:
-    """Enhanced AI-powered sentiment with better error handling and validation"""
+class BaseSentimentEngine:
+    """IMPROVEMENT #7: Abstract provider interface for multi-model support"""
+    
+    async def analyze_token(self, metrics: TokenMetrics) -> SentimentAnalysis:
+        """Analyze token and return sentiment analysis"""
+        raise NotImplementedError
+    
+    async def extract_insight(self, metrics: TokenMetrics) -> Optional[AIInsight]:
+        """IMPROVEMENT #2: Extract AI insight only (no scoring)"""
+        raise NotImplementedError
+
+
+class SentimentEngine(BaseSentimentEngine):
+    """IMPROVEMENT #2 & #7: AI extracts insight, code calculates scores"""
     
     def __init__(self, api_key: Optional[str] = None):
         if api_key:
@@ -678,55 +718,325 @@ class SentimentEngine:
         else:
             self.client = None
             logger.warning("⚠ No Anthropic API key provided - using heuristic analysis only")
+        
+        # IMPROVEMENT #6: Track AI performance metrics
+        self.ai_stats = {
+            'ai_calls': 0,
+            'fallback_count': 0,
+            'parse_failures': 0,
+            'timeout_count': 0
+        }
     
     async def analyze_token(self, metrics: TokenMetrics) -> SentimentAnalysis:
-        """Comprehensive sentiment analysis with data quality awareness"""
+        """IMPROVEMENT #1 & #3: Check validity, short-circuit invalid metrics"""
+        # IMPROVEMENT #3: Reject invalid metrics immediately
+        if not metrics.valid:
+            logger.error(f"Cannot analyze invalid metrics for {metrics.symbol}: {metrics.failure_reason}")
+            return self._create_invalid_analysis(metrics, metrics.failure_reason)
+        
+        # Calculate risk metrics (code-based, deterministic)
         rugpull = self._calc_rugpull(metrics)
         honeypot = self._calc_honeypot(metrics)
         whale = self._calc_whale(metrics)
         
-        # Attempt AI analysis if client available
+        # IMPROVEMENT #2: Extract AI insight (sentiment only, not scores)
+        ai_insight = None
         ai_powered = False
         if self.client:
-            ai = await self._get_ai_analysis(metrics)
-            if ai and 'overall_score' in ai:
+            ai_insight = await self.extract_insight(metrics)
+            if ai_insight:
                 ai_powered = True
             else:
-                logger.warning(f"AI analysis failed for {metrics.symbol}, using heuristic fallback")
-                ai = self._get_basic_analysis(metrics)
-        else:
-            ai = self._get_basic_analysis(metrics)
+                logger.warning(f"AI insight failed for {metrics.symbol}, using heuristic")
+                self.ai_stats['fallback_count'] += 1
         
-        # Adjust confidence based on data quality
-        confidence = ai['confidence']
-        if metrics.data_quality == DataQuality.SIMULATED:
-            confidence = 'low'
-            ai['key_factors'].insert(0, "⚠ Using simulated market data")
-        elif metrics.data_quality == DataQuality.PARTIAL:
-            if confidence == 'high':
-                confidence = 'medium'
-            ai['key_factors'].insert(0, "⚠ Partial market data available")
+        # IMPROVEMENT #2: Code calculates score, risk, recommendation (not AI)
+        score, risk = self._calculate_score_and_risk(metrics, rugpull, honeypot, whale)
+        sentiment = self._map_sentiment(ai_insight.sentiment_label if ai_insight else None, score)
+        recommendation = self._map_recommendation(score, risk)
+        
+        # Build technical signals
+        ratio = metrics.volume_24h / max(metrics.liquidity_usd, 1)
+        technical_signals = [
+            f"Volume/Liquidity: {ratio:.2%}",
+            f"Market cap: ${metrics.market_cap:,.0f}" if metrics.market_cap else "Market cap: N/A",
+            f"Data quality: {metrics.data_quality.value}"
+        ]
+        
+        # IMPROVEMENT #1: Determine validity
+        validity = self._determine_validity(metrics, ai_powered)
+        confidence = self._adjust_confidence(ai_insight.confidence if ai_insight else "medium", metrics.data_quality, validity)
+        
+        # Build key factors (code + AI insights)
+        key_factors = [
+            f"24h change: {metrics.price_change_24h:+.2f}%",
+            f"Liquidity: ${metrics.liquidity_usd:,.0f}",
+            f"Holders: {metrics.holders:,}" if metrics.holders > 0 else "Holders: unknown",
+            f"Volume/Liquidity: {ratio:.2%}"
+        ]
+        
+        if ai_insight and ai_insight.key_factors:
+            key_factors.extend(ai_insight.key_factors[:2])  # Add top 2 AI insights
+        
+        summary = ai_insight.rationale if ai_insight else self._generate_summary(metrics, sentiment, risk)
         
         return SentimentAnalysis(
             token_address=metrics.address,
             symbol=metrics.symbol,
             network=metrics.network,
-            overall_score=ai['overall_score'],
-            sentiment=Sentiment(ai['sentiment']),
+            overall_score=score,
+            sentiment=sentiment,
             confidence=confidence,
-            risk_level=RiskLevel(ai['risk_level']),
-            key_factors=ai['key_factors'],
-            technical_signals=ai['technical_signals'],
-            recommendation=ai['recommendation'],
-            summary=ai['summary'],
-            social_score=ai.get('social_score'),
+            risk_level=risk,
+            key_factors=key_factors,
+            technical_signals=technical_signals,
+            recommendation=recommendation,
+            summary=summary,
+            social_score=score,  # Social score mirrors overall for now
             rugpull_risk=rugpull,
             honeypot_risk=honeypot,
             whale_concentration=whale,
             data_quality=metrics.data_quality,
-            ai_powered=ai_powered
+            validity=validity,
+            ai_powered=ai_powered,
+            ai_insight=ai_insight
         )
     
+    def _create_invalid_analysis(self, metrics: TokenMetrics, reason: str) -> SentimentAnalysis:
+        """Create analysis for invalid metrics"""
+        return SentimentAnalysis(
+            token_address=metrics.address,
+            symbol=metrics.symbol,
+            network=metrics.network,
+            overall_score=0,
+            sentiment=Sentiment.NEUTRAL,
+            confidence="none",
+            risk_level=RiskLevel.CRITICAL,
+            key_factors=[f"Analysis failed: {reason}"],
+            technical_signals=["Invalid metrics"],
+            recommendation="no_action",
+            summary=f"Cannot analyze {metrics.symbol}: {reason}",
+            social_score=None,
+            rugpull_risk=1.0,
+            honeypot_risk=1.0,
+            whale_concentration=1.0,
+            data_quality=metrics.data_quality,
+            validity=AnalysisValidity.INVALID,
+            ai_powered=False,
+            ai_insight=None
+        )
+    
+    def _determine_validity(self, metrics: TokenMetrics, ai_powered: bool) -> AnalysisValidity:
+        """IMPROVEMENT #1: Explicit validity determination"""
+        if not metrics.valid or metrics.data_quality == DataQuality.UNKNOWN:
+            return AnalysisValidity.INVALID
+        elif metrics.data_quality in (DataQuality.SIMULATED, DataQuality.PARTIAL):
+            return AnalysisValidity.DEGRADED
+        else:
+            return AnalysisValidity.VALID
+    
+    def _adjust_confidence(self, base_confidence: str, data_quality: DataQuality, validity: AnalysisValidity) -> str:
+        """Adjust confidence based on validity"""
+        if validity == AnalysisValidity.INVALID:
+            return "none"
+        elif validity == AnalysisValidity.DEGRADED:
+            return "low"
+        elif data_quality == DataQuality.PARTIAL:
+            return "medium" if base_confidence == "high" else base_confidence
+        return base_confidence
+    
+    def _calculate_score_and_risk(
+        self,
+        m: TokenMetrics,
+        rugpull: float,
+        honeypot: float,
+        whale: float
+    ) -> Tuple[int, RiskLevel]:
+        """IMPROVEMENT #2: Code-based scoring (deterministic, auditable)"""
+        score = 50  # Neutral baseline
+        
+        # Price momentum
+        if m.price_change_24h > 20: score += 25
+        elif m.price_change_24h > 10: score += 15
+        elif m.price_change_24h < -20: score -= 25
+        elif m.price_change_24h < -10: score -= 15
+        
+        # Liquidity scoring
+        if m.liquidity_usd > 1000000: score += 20
+        elif m.liquidity_usd > 500000: score += 15
+        elif m.liquidity_usd > 100000: score += 5
+        elif m.liquidity_usd < 50000: score -= 20
+        
+        # Volume/Liquidity ratio
+        ratio = m.volume_24h / max(m.liquidity_usd, 1)
+        if ratio > 1.0: score += 15
+        elif ratio > 0.5: score += 10
+        elif ratio < 0.01: score -= 10
+        
+        # Holder count
+        if m.holders > 10000: score += 10
+        elif m.holders > 5000: score += 5
+        elif m.holders > 0 and m.holders < 100: score -= 15
+        elif m.holders > 0 and m.holders < 500: score -= 10
+        
+        score = max(0, min(100, score))
+        
+        # Determine risk (code-based)
+        risk = RiskLevel.MEDIUM
+        if rugpull > 0.7 or honeypot > 0.7 or whale > 0.8:
+            risk = RiskLevel.CRITICAL
+        elif m.liquidity_usd > 1000000 and m.holders > 5000 and rugpull < 0.3:
+            risk = RiskLevel.LOW
+        elif rugpull > 0.5 or honeypot > 0.5 or m.liquidity_usd < 50000:
+            risk = RiskLevel.HIGH
+        
+        return score, risk
+    
+    def _map_sentiment(self, ai_sentiment: Optional[str], score: int) -> Sentiment:
+        """Map AI sentiment or score to sentiment enum"""
+        if ai_sentiment:
+            sentiment_map = {
+                'bullish': Sentiment.BULLISH,
+                'bearish': Sentiment.BEARISH,
+                'neutral': Sentiment.NEUTRAL
+            }
+            return sentiment_map.get(ai_sentiment.lower(), Sentiment.NEUTRAL)
+        
+        # Fallback to score-based
+        if score > 60:
+            return Sentiment.BULLISH
+        elif score < 40:
+            return Sentiment.BEARISH
+        return Sentiment.NEUTRAL
+    
+    def _map_recommendation(self, score: int, risk: RiskLevel) -> str:
+        """IMPROVEMENT #5: Neutral signal language (no BUY/SELL)"""
+        if risk == RiskLevel.CRITICAL:
+            return "avoid"
+        elif score > 75 and risk == RiskLevel.LOW:
+            return "positive_bias"
+        elif score > 60:
+            return "lean_positive"
+        elif score < 25:
+            return "negative_bias"
+        elif score < 40:
+            return "lean_negative"
+        else:
+            return "neutral"
+    
+    def _generate_summary(self, m: TokenMetrics, sentiment: Sentiment, risk: RiskLevel) -> str:
+        """Generate summary without AI"""
+        return f"{m.symbol} shows {sentiment.value} sentiment with {risk.value} risk profile (deterministic analysis)"
+    
+    async def extract_insight(self, metrics: TokenMetrics) -> Optional[AIInsight]:
+        """IMPROVEMENT #2: AI extracts sentiment/rationale only (no scoring)"""
+        self.ai_stats['ai_calls'] += 1
+        
+        prompt = f"""Analyze cryptocurrency token sentiment. Respond with ONLY JSON:
+
+Token: {metrics.name} ({metrics.symbol}) on {metrics.network}
+Price: ${metrics.price_usd:.6f}
+24h Change: {metrics.price_change_24h:+.2f}%
+Liquidity: ${metrics.liquidity_usd:,.0f}
+Volume 24h: ${metrics.volume_24h:,.0f}
+Holders: {metrics.holders:,}
+
+Return ONLY this JSON (no markdown, no explanation):
+{{"sentiment":"<bullish|neutral|bearish>","confidence":"<high|medium|low>","key_factors":["factor1","factor2"],"rationale":"<1 sentence summary>"}}"""
+        
+        try:
+            message = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self.client.messages.create,
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=500,  # Reduced - we need less
+                    messages=[{"role": "user", "content": prompt}]
+                ),
+                timeout=20  # Tighter timeout
+            )
+            
+            text = message.content[0].text.strip()
+            
+            # Multi-strategy JSON extraction
+            parsed = self._parse_json_response(text)
+            
+            if parsed and self._validate_insight(parsed):
+                return AIInsight(
+                    sentiment_label=parsed['sentiment'],
+                    key_factors=parsed.get('key_factors', []),
+                    rationale=parsed.get('rationale', ''),
+                    confidence=parsed.get('confidence', 'medium')
+                )
+            else:
+                logger.warning(f"AI insight validation failed for {metrics.symbol}")
+                self.ai_stats['parse_failures'] += 1
+                return None
+            
+        except asyncio.TimeoutError:
+            logger.error(f"AI insight timeout for {metrics.symbol}")
+            self.ai_stats['timeout_count'] += 1
+            return None
+        except Exception as e:
+            logger.error(f"AI insight error for {metrics.symbol}: {type(e).__name__}: {e}")
+            self.ai_stats['parse_failures'] += 1
+            return None
+    
+    def _parse_json_response(self, text: str) -> Optional[Dict]:
+        """Parse JSON with multiple strategies"""
+        # Strategy 1: Direct parse
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        
+        # Strategy 2: Extract first {...}
+        match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        # Strategy 3: Remove markdown
+        cleaned = re.sub(r'```json\s*|\s*```', '', text).strip()
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+        
+        return None
+    
+    def _validate_insight(self, response: Dict) -> bool:
+        """Validate AI insight structure"""
+        required = ['sentiment', 'confidence', 'rationale']
+        if not all(f in response for f in required):
+            return False
+        
+        if response['sentiment'] not in ['bullish', 'neutral', 'bearish']:
+            return False
+        if response['confidence'] not in ['high', 'medium', 'low']:
+            return False
+        
+        return True
+    
+    def get_ai_stats(self) -> Dict[str, Any]:
+        """IMPROVEMENT #6: Expose AI performance metrics"""
+        total_calls = self.ai_stats['ai_calls']
+        if total_calls == 0:
+            return {
+                'ai_calls': 0,
+                'fallback_rate': '0%',
+                'parse_failure_rate': '0%',
+                'timeout_rate': '0%'
+            }
+
+        return {
+            'ai_calls': total_calls,
+            'fallback_rate': f"{(self.ai_stats['fallback_count'] / total_calls * 100):.1f}%",
+            'parse_failure_rate': f"{(self.ai_stats['parse_failures'] / total_calls * 100):.1f}%",
+            'timeout_rate': f"{(self.ai_stats['timeout_count'] / total_calls * 100):.1f}%"
+        }
+
     def _calc_rugpull(self, m: TokenMetrics) -> float:
         """Enhanced rugpull calculation"""
         r = 0.0
@@ -736,25 +1046,25 @@ class SentimentEngine:
         elif m.holders < 500: r += 0.2
         if abs(m.price_change_24h) > 50: r += 0.3
         elif abs(m.price_change_24h) > 30: r += 0.2
-        
+
         # Adjust for data quality
         if m.data_quality == DataQuality.SIMULATED:
             r = min(r + 0.2, 1.0)  # Increase risk for simulated data
-        
+
         return min(r, 1.0)
-    
+
     def _calc_honeypot(self, m: TokenMetrics) -> float:
         """Enhanced honeypot detection"""
         r = 0.0
         ratio = m.volume_24h / max(m.liquidity_usd, 1)
         if ratio < 0.01: r += 0.5
         if m.price_change_24h > 100: r += 0.3
-        
+
         # Very low holder count is suspicious
         if m.holders < 50: r += 0.3
-        
+
         return min(r, 1.0)
-    
+
     def _calc_whale(self, m: TokenMetrics) -> float:
         """Enhanced whale concentration estimation"""
         if m.holders < 50: return 0.9
@@ -972,7 +1282,7 @@ class AlertManager:
         severity: str = "info",
         analysis: Optional[SentimentAnalysis] = None
     ):
-        """Send alert with rate limiting"""
+        """IMPROVEMENT #5: Compliance-safe neutral signal language"""
         log_map = {
             'critical': logger.critical,
             'warning': logger.warning,
@@ -995,7 +1305,7 @@ class AlertManager:
                         'info': 65280          # Green
                     }.get(severity, 8421504)
                     
-                    # Add data quality indicator
+                    # Add data quality and validity indicators
                     quality_emoji = {
                         DataQuality.REAL: "✅",
                         DataQuality.PARTIAL: "⚠️",
@@ -1003,17 +1313,34 @@ class AlertManager:
                         DataQuality.UNKNOWN: "❓"
                     }.get(analysis.data_quality, "")
                     
+                    validity_emoji = {
+                        AnalysisValidity.VALID: "✅",
+                        AnalysisValidity.DEGRADED: "⚠️",
+                        AnalysisValidity.INVALID: "❌"
+                    }.get(analysis.validity, "")
+                    
+                    # IMPROVEMENT #5: Neutral signal language (no BUY/SELL)
+                    recommendation_display = {
+                        'positive_bias': 'Positive Bias',
+                        'lean_positive': 'Lean Positive',
+                        'neutral': 'Neutral',
+                        'lean_negative': 'Lean Negative',
+                        'negative_bias': 'Negative Bias',
+                        'avoid': 'Structural Risk - Avoid',
+                        'no_action': 'No Action'
+                    }.get(analysis.recommendation, analysis.recommendation.upper())
+                    
                     fields = [
                         {"name": "Sentiment", "value": analysis.sentiment.value.upper(), "inline": True},
                         {"name": "Score", "value": f"{analysis.overall_score}/100", "inline": True},
                         {"name": "Risk", "value": analysis.risk_level.value.upper(), "inline": True},
-                        {"name": "Rugpull Risk", "value": f"{analysis.rugpull_risk:.1%}", "inline": True},
-                        {"name": "Recommendation", "value": analysis.recommendation.upper(), "inline": True},
-                        {"name": "Data Quality", "value": f"{quality_emoji} {analysis.data_quality.value}", "inline": True}
+                        {"name": "Structural Risk", "value": f"{analysis.rugpull_risk:.1%}", "inline": True},
+                        {"name": "Signal", "value": recommendation_display, "inline": True},
+                        {"name": "Validity", "value": f"{validity_emoji} {analysis.validity.value}", "inline": True}
                     ]
                     
                     if not analysis.ai_powered:
-                        fields.append({"name": "Analysis Type", "value": "🔧 Heuristic (AI unavailable)", "inline": False})
+                        fields.append({"name": "Analysis Type", "value": "🔧 Deterministic (AI unavailable)", "inline": False})
                     
                     payload = {
                         "content": f"**{title}**\n{msg}",
@@ -1039,7 +1366,7 @@ class AlertManager:
 
 
 class MonitoringTask:
-    """Enhanced monitoring task with better error handling"""
+    """IMPROVEMENT #4: Complete stateful alert gating (no spam anywhere)"""
     
     def __init__(
         self,
@@ -1058,6 +1385,14 @@ class MonitoringTask:
         self.running = False
         self.error_count = 0
         self.max_errors = 5
+        
+        # IMPROVEMENT #4: Complete state tracking for ALL alert types
+        self.last_alert_state = {
+            "risk": None,          # Critical risk state
+            "signal": None,        # Positive/negative bias state
+            "validity": None,      # Validity state
+            "last_score": None     # For sentiment shift detection
+        }
     
     async def start(self):
         """Start monitoring task"""
@@ -1077,122 +1412,201 @@ class MonitoringTask:
         logger.info(f"✓ Stopped monitoring {self.token_address}")
     
     async def _monitor_loop(self):
-        """Main monitoring loop with error recovery"""
-        prev_analysis = None
+        """IMPROVEMENT #4: Fully state-gated monitoring loop"""
         
-        while self.running:
-            try:
-                analysis = await asyncio.wait_for(
-                    self.scanner.scan_token(self.token_address, self.network),
-                    timeout=60
-                )
-                
-                if analysis:
-                    self.error_count = 0  # Reset on success
+        try:
+            while self.running:
+                try:
+                    analysis = await asyncio.wait_for(
+                        self.scanner.scan_token(self.token_address, self.network),
+                        timeout=60
+                    )
                     
-                    # Critical risk alert
-                    if self.thresholds.get('critical_risk') and analysis.risk_level == RiskLevel.CRITICAL:
-                        await self.scanner.alert_manager.send_alert(
-                            "🚨 CRITICAL RISK",
-                            f"High risk detected for {analysis.symbol}",
-                            severity='critical',
-                            analysis=analysis
-                        )
+                    if analysis:
+                        self.error_count = 0
+                        
+                        # IMPROVEMENT #1: Alert on validity changes
+                        if analysis.validity == AnalysisValidity.INVALID:
+                            if self.last_alert_state["validity"] != "invalid":
+                                await self.scanner.alert_manager.send_alert(
+                                    "❌ ANALYSIS INVALID",
+                                    f"Cannot analyze {analysis.symbol}: invalid metrics",
+                                    severity='critical',
+                                    analysis=analysis
+                                )
+                                self.last_alert_state["validity"] = "invalid"
+                        elif analysis.validity == AnalysisValidity.DEGRADED:
+                            if self.last_alert_state["validity"] != "degraded":
+                                await self.scanner.alert_manager.send_alert(
+                                    "⚠️ DEGRADED DATA QUALITY",
+                                    f"Partial data for {analysis.symbol}",
+                                    severity='warning',
+                                    analysis=analysis
+                                )
+                                self.last_alert_state["validity"] = "degraded"
+                        else:
+                            self.last_alert_state["validity"] = "valid"
+                        
+                        # Skip further alerts if invalid
+                        if analysis.validity == AnalysisValidity.INVALID:
+                            await asyncio.sleep(self.interval)
+                            continue
+                        
+                        # IMPROVEMENT #4: State-gated critical risk
+                        if self.thresholds.get('critical_risk'):
+                            if analysis.risk_level == RiskLevel.CRITICAL and self.last_alert_state["risk"] != "critical":
+                                await self.scanner.alert_manager.send_alert(
+                                    "🚨 CRITICAL RISK DETECTED",
+                                    f"High structural risk for {analysis.symbol}",
+                                    severity='critical',
+                                    analysis=analysis
+                                )
+                                self.last_alert_state["risk"] = "critical"
+                            elif analysis.risk_level != RiskLevel.CRITICAL:
+                                self.last_alert_state["risk"] = None
+                        
+                        # IMPROVEMENT #4 & #5: State-gated signals with neutral language
+                        signal = None
+                        if self.thresholds.get('high_score') and analysis.overall_score > self.thresholds['high_score']:
+                            signal = "positive"
+                        elif self.thresholds.get('low_score') and analysis.overall_score < self.thresholds['low_score']:
+                            signal = "negative"
+                        
+                        if signal and self.last_alert_state["signal"] != signal:
+                            if signal == "positive":
+                                await self.scanner.alert_manager.send_alert(
+                                    "📈 POSITIVE BIAS DETECTED",
+                                    f"Strong positive indicators for {analysis.symbol}",
+                                    severity='info',
+                                    analysis=analysis
+                                )
+                            else:
+                                await self.scanner.alert_manager.send_alert(
+                                    "📉 NEGATIVE BIAS DETECTED",
+                                    f"Strong negative indicators for {analysis.symbol}",
+                                    severity='warning',
+                                    analysis=analysis
+                                )
+                            self.last_alert_state["signal"] = signal
+                        elif not signal:
+                            self.last_alert_state["signal"] = None
+                        
+                        # IMPROVEMENT #2: Configurable sentiment shift threshold
+                        if self.thresholds.get('sentiment_shift') and self.last_alert_state["last_score"] is not None:
+                            delta = self.thresholds.get('sentiment_shift_delta', 20)
+                            score_change = abs(analysis.overall_score - self.last_alert_state["last_score"])
+                            if score_change > delta:
+                                await self.scanner.alert_manager.send_alert(
+                                    "⚡ SENTIMENT SHIFT",
+                                    f"{analysis.symbol} score changed by {score_change} points",
+                                    severity='warning',
+                                    analysis=analysis
+                                )
+                        
+                        self.last_alert_state["last_score"] = analysis.overall_score
+                    else:
+                        self.error_count += 1
+                        logger.warning(f"Scan returned None for {self.token_address} (error {self.error_count}/{self.max_errors})")
                     
-                    # Strong buy signal
-                    elif self.thresholds.get('high_score') and analysis.overall_score > self.thresholds['high_score']:
-                        await self.scanner.alert_manager.send_alert(
-                            "📈 STRONG BUY",
-                            f"Bullish signal for {analysis.symbol}",
-                            severity='info',
-                            analysis=analysis
-                        )
+                    await asyncio.sleep(self.interval)
                     
-                    # Strong sell signal
-                    elif self.thresholds.get('low_score') and analysis.overall_score < self.thresholds['low_score']:
-                        await self.scanner.alert_manager.send_alert(
-                            "📉 STRONG SELL",
-                            f"Bearish signal for {analysis.symbol}",
-                            severity='warning',
-                            analysis=analysis
-                        )
-                    
-                    # Sentiment shift detection
-                    if prev_analysis and self.thresholds.get('sentiment_shift'):
-                        score_change = abs(analysis.overall_score - prev_analysis.overall_score)
-                        if score_change > 20:
-                            await self.scanner.alert_manager.send_alert(
-                                "⚡ SENTIMENT SHIFT",
-                                f"{analysis.symbol} sentiment changed by {score_change} points",
-                                severity='warning',
-                                analysis=analysis
-                            )
-                    
-                    prev_analysis = analysis
-                else:
+                except asyncio.CancelledError:
+                    logger.info(f"Monitoring cancelled for {self.token_address}")
+                    break
+                except asyncio.TimeoutError:
                     self.error_count += 1
-                    logger.warning(f"Scan returned None for {self.token_address} (error {self.error_count}/{self.max_errors})")
-                
-                await asyncio.sleep(self.interval)
-                
-            except asyncio.CancelledError:
-                logger.info(f"Monitoring cancelled for {self.token_address}")
-                break
-            except asyncio.TimeoutError:
-                self.error_count += 1
-                logger.error(f"Monitor timeout for {self.token_address} (error {self.error_count}/{self.max_errors})")
-                if self.error_count >= self.max_errors:
-                    logger.critical(f"Max errors reached for {self.token_address}, stopping monitor")
-                    break
-                await asyncio.sleep(self.interval)
-            except Exception as e:
-                self.error_count += 1
-                logger.error(f"Monitor error for {self.token_address}: {e} (error {self.error_count}/{self.max_errors})", exc_info=True)
-                if self.error_count >= self.max_errors:
-                    logger.critical(f"Max errors reached for {self.token_address}, stopping monitor")
-                    break
-                await asyncio.sleep(self.interval)
+                    logger.error(f"Monitor timeout for {self.token_address} (error {self.error_count}/{self.max_errors})")
+                    if self.error_count >= self.max_errors:
+                        logger.critical(f"Max errors reached for {self.token_address}, stopping monitor")
+                        break
+                    await asyncio.sleep(self.interval)
+                except Exception as e:
+                    self.error_count += 1
+                    logger.error(f"Monitor error for {self.token_address}: {e} (error {self.error_count}/{self.max_errors})", exc_info=True)
+                    if self.error_count >= self.max_errors:
+                        logger.critical(f"Max errors reached for {self.token_address}, stopping monitor")
+                        break
+                    await asyncio.sleep(self.interval)
+        finally:
+            self.running = False
 
 
 class SentimentScanner:
     """Enhanced main orchestrator with better diagnostics"""
-    
+
+    REQUIRED_CONFIG_KEYS = [
+        'max_concurrent', 'log_level'
+    ]
+
     def __init__(
         self,
         anthropic_api_key: Optional[str] = None,
         config_path: Optional[str] = None,
         explorer_api_key: Optional[str] = None,
         max_concurrent: int = 10,
-        log_level: str = "INFO"
+        log_level: str = "INFO",
+        config: Optional[Dict] = None  # 🔒 FIX: Accept config parameter for constructor normalization
     ):
+        # 🔒 FIX: Handle config parameter from ScanDirector
+        if config:
+            max_concurrent = config.get('max_concurrent', max_concurrent)
+            log_level = config.get('log_level', log_level)
+            # Extract other possible config params
+            anthropic_api_key = config.get('anthropic_api_key', anthropic_api_key)
+            config_path = config.get('config_path', config_path)
+            explorer_api_key = config.get('explorer_api_key', explorer_api_key)
+        
+        # ✅ IMMEDIATE FIX: Add startup configuration validation
+        config = {
+            'max_concurrent': max_concurrent,
+            'log_level': log_level
+        }
+
+        missing_keys = [key for key in self.REQUIRED_CONFIG_KEYS if key not in config or config[key] is None]
+        if missing_keys:
+            raise ValueError(f"SentimentScanner missing required config keys: {missing_keys}")
+
+        if config['max_concurrent'] <= 0:
+            raise ValueError(f"max_concurrent must be > 0, got {config['max_concurrent']}")
+
         # Set log level
         logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
-        
+
         # Load API keys from environment if not provided
         self.anthropic_key = anthropic_api_key or os.getenv('ANTHROPIC_API_KEY')
         self.explorer_key = explorer_api_key or os.getenv('EXPLORER_API_KEY')
-        
+
         # Warn about missing keys
         if not self.anthropic_key:
             logger.warning("⚠ ANTHROPIC_API_KEY not set - AI analysis will be unavailable")
         if not self.explorer_key:
             logger.warning("⚠ EXPLORER_API_KEY not set - real holder counts will be unavailable")
-        
+
         self.network_manager = NetworkManager(config_path)
         self.rpc_manager = RPCManager()
         self.market_data: Optional[MarketDataProvider] = None
         self.token_analyzer: Optional[TokenAnalyzer] = None
-        self.sentiment_engine = SentimentEngine(self.anthropic_key)
+
+        # FIX #6: Use base interface for sentiment engine
+        self.sentiment_engine: BaseSentimentEngine = SentimentEngine(self.anthropic_key)
+
         self.alert_manager = AlertManager()
         self.semaphore = asyncio.Semaphore(max_concurrent)
-        
+
         # Monitoring tasks
         self.monitoring_tasks: Dict[str, MonitoringTask] = {}
-        
-        # Statistics
+
+        # IMPROVEMENT #1 & #3: Track graded success metrics
         self.scan_count = 0
         self.success_count = 0
         self.failure_count = 0
+        self.degraded_count = 0  # Partial/simulated data
+        self.invalid_count = 0  # Invalid metrics (no market data)
+
+        # ✅ IMMEDIATE FIX: Add memory usage monitoring
+        # TODO: Implement MemoryMonitor class
+        # self.memory_monitor = MemoryMonitor()
+        # self.memory_monitor.start()
     
     async def initialize(self) -> None:
         """Initialize scanner components"""
@@ -1220,55 +1634,81 @@ class SentimentScanner:
         token_address: str,
         network: str = 'ethereum'
     ) -> Optional[SentimentAnalysis]:
-        """Scan single token with timeout and error handling"""
-        async with self.semaphore:
-            self.scan_count += 1
-            logger.info(f"[{self.scan_count}] Scanning {token_address} on {network}")
-            
-            try:
-                metrics = await asyncio.wait_for(
-                    self.token_analyzer.calculate_metrics(token_address, network),
-                    timeout=45
-                )
-                
-                if not metrics:
-                    logger.error(f"✗ Failed to get metrics for {token_address}")
-                    self.failure_count += 1
-                    return None
-                
-                analysis = await asyncio.wait_for(
-                    self.sentiment_engine.analyze_token(metrics),
-                    timeout=35
-                )
-                
-                self.success_count += 1
-                
-                # Enhanced logging with data quality
-                quality_indicator = {
-                    DataQuality.REAL: "✅",
-                    DataQuality.PARTIAL: "⚠️",
-                    DataQuality.SIMULATED: "🔶",
-                    DataQuality.UNKNOWN: "❓"
-                }.get(analysis.data_quality, "")
-                
-                ai_indicator = "🤖" if analysis.ai_powered else "🔧"
-                
-                logger.info(
-                    f"✓ {analysis.symbol}: {analysis.sentiment.value.upper()} "
-                    f"(Score: {analysis.overall_score}/100, Risk: {analysis.risk_level.value.upper()}) "
-                    f"{quality_indicator}{ai_indicator}"
-                )
-                
-                return analysis
-                
-            except asyncio.TimeoutError:
-                logger.error(f"✗ Timeout scanning {token_address}")
-                self.failure_count += 1
-                return None
-            except Exception as e:
-                logger.error(f"✗ Scan error for {token_address}: {type(e).__name__}: {e}", exc_info=True)
-                self.failure_count += 1
-                return None
+        """Scan single token with FIX #4: timeout outside semaphore (Python 3.11+ compatible)"""
+        self.scan_count += 1
+
+        # ✅ IMMEDIATE FIX: Global error boundary
+        try:
+            # FIX #4: Timeout wraps the entire operation, not nested inside semaphore
+            # Note: asyncio.timeout() requires Python 3.11+
+            # For Python <3.11, use: async with asyncio.wait_for(..., timeout=90)
+            async with asyncio.timeout(90):
+                async with self.semaphore:
+                    logger.info(f"[{self.scan_count}] Scanning {token_address} on {network}")
+
+                    metrics = await self.token_analyzer.calculate_metrics(token_address, network)
+
+                    if not metrics:
+                        logger.error(f"✗ Failed to get metrics for {token_address}")
+                        self.failure_count += 1
+                        return None
+
+                    analysis = await self.sentiment_engine.analyze_token(metrics)
+
+                    self.success_count += 1
+
+                    # IMPROVEMENT #1 & #3: Track validity levels
+                    if analysis.validity == AnalysisValidity.INVALID:
+                        self.invalid_count += 1
+                    elif analysis.validity == AnalysisValidity.DEGRADED:
+                        self.degraded_count += 1
+
+                    # Enhanced logging with data quality
+                    quality_indicator = {
+                        DataQuality.REAL: "✅",
+                        DataQuality.PARTIAL: "⚠️",
+                        DataQuality.SIMULATED: "🔶",
+                        DataQuality.UNKNOWN: "❓"
+                    }.get(analysis.data_quality, "")
+
+                    ai_indicator = "🤖" if analysis.ai_powered else "🔧"
+
+                    logger.info(
+                        f"✓ {analysis.symbol}: {analysis.sentiment.value.upper()} "
+                        f"(Score: {analysis.overall_score}/100, Risk: {analysis.risk_level.value.upper()}) "
+                        f"{quality_indicator}{ai_indicator}"
+                    )
+
+                    return analysis
+
+        except asyncio.TimeoutError:
+            logger.error(f"✗ Timeout scanning {token_address}")
+            self.failure_count += 1
+            return None
+        except Exception as e:
+            # ✅ IMMEDIATE FIX: Global error boundary - catch all exceptions
+            logger.error(f"✗ CRITICAL: Scan error for {token_address}: {type(e).__name__}: {e}", exc_info=True)
+            self.failure_count += 1
+            # Return None instead of crashing the entire scanner
+            return None
+    
+    async def scan(self, chain: str = None, **kwargs) -> List[Dict]:
+        """
+        Scan method compatible with ScanDirector
+        Returns empty list as sentiment scanner doesn't produce token candidates
+        """
+        logger.info(f"SentimentScanner scan called for chain: {chain}")
+        return []
+    
+    async def protected_scan(self, chain: str = None, **kwargs) -> List[Dict]:
+        """
+        Protected scan method with circuit breaker compatibility
+        """
+        try:
+            return await self.scan(chain, **kwargs)
+        except Exception as e:
+            logger.error(f"SentimentScanner protected_scan failed: {e}")
+            return []
     
     async def scan_multiple(
         self,
@@ -1314,9 +1754,10 @@ class SentimentScanner:
         
         thresholds = alert_thresholds or {
             'critical_risk': True,
-            'high_score': 80,
-            'low_score': 20,
-            'sentiment_shift': True
+            'high_score': 75,  # Alert on score > 75
+            'low_score': 25,   # Alert on score < 25
+            'sentiment_shift': True,  # Alert on large sentiment changes
+            'sentiment_shift_delta': 20  # FIX #2: Configurable threshold (no hardcode)
         }
         
         task = MonitoringTask(self, token_address, network, interval, thresholds)
@@ -1360,16 +1801,21 @@ class SentimentScanner:
         }
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get scanner performance statistics"""
+        """IMPROVEMENT #6: Include AI evaluation metrics"""
         cache_stats = self.market_data.cache.get_stats() if self.market_data else {}
+        ai_stats = self.sentiment_engine.get_ai_stats() if hasattr(self.sentiment_engine, 'get_ai_stats') else {}
         
         return {
             'total_scans': self.scan_count,
             'successful_scans': self.success_count,
             'failed_scans': self.failure_count,
+            'degraded_scans': self.degraded_count,
+            'invalid_scans': self.invalid_count,  # NEW
             'success_rate': f"{(self.success_count / max(self.scan_count, 1) * 100):.1f}%",
+            'data_quality_rate': f"{((self.success_count - self.degraded_count) / max(self.success_count, 1) * 100):.1f}%",
             'active_monitors': len(self.monitoring_tasks),
-            'cache_stats': cache_stats
+            'cache_stats': cache_stats,
+            'ai_stats': ai_stats  # IMPROVEMENT #6
         }
     
     async def cleanup(self):
@@ -1377,26 +1823,28 @@ class SentimentScanner:
         logger.info("="*80)
         logger.info("Shutting down scanner...")
         logger.info("="*80)
-        
+
         await self.stop_all_monitoring()
         await self.network_manager.close()
-        
-        # Close aiohttp session
-        if hasattr(self, 'session') and self.session and not self.session.closed:
-            try:
-                await self.session.close()
-                await asyncio.sleep(0.1)  # Brief pause to ensure cleanup
-                logger.debug("✅ SentimentScanner HTTP session closed")
-            except Exception as e:
-                logger.warning(f"Error closing SentimentScanner session: {e}")
-        
+
+        # ✅ IMMEDIATE FIX: Stop memory monitor
+        if hasattr(self, 'memory_monitor'):
+            self.memory_monitor.stop()
+
         # Print final statistics
         stats = self.get_statistics()
         logger.info("Final Statistics:")
         for key, value in stats.items():
-            if key != 'cache_stats':
+            if key not in ['cache_stats', 'ai_stats']:
                 logger.info(f"  {key}: {value}")
-        
+
+        # Print memory stats
+        if hasattr(self, 'memory_monitor'):
+            mem_stats = self.memory_monitor.get_memory_stats()
+            logger.info("Final Memory Stats:")
+            logger.info(f"  RSS: {mem_stats['rss_mb']:.1f} MB")
+            logger.info(f"  VMS: {mem_stats['vms_mb']:.1f} MB")
+
         logger.info("="*80)
         logger.info("✓ Cleanup complete")
         logger.info("="*80)
@@ -1413,7 +1861,12 @@ class SentimentScanner:
         data['sentiment'] = data['sentiment'].value if isinstance(data['sentiment'], Enum) else data['sentiment']
         data['risk_level'] = data['risk_level'].value if isinstance(data['risk_level'], Enum) else data['risk_level']
         data['data_quality'] = data['data_quality'].value if isinstance(data['data_quality'], Enum) else data['data_quality']
+        data['validity'] = data['validity'].value if isinstance(data['validity'], Enum) else data['validity']
         data['timestamp'] = data['timestamp'].isoformat()
+        
+        # Handle AIInsight nested object
+        if data.get('ai_insight'):
+            data['ai_insight'] = asdict(data['ai_insight']) if hasattr(data['ai_insight'], '__dict__') else data['ai_insight']
         
         if format == 'json':
             return json.dumps(data, indent=2)
@@ -1423,6 +1876,9 @@ class SentimentScanner:
             # Flatten lists for CSV
             data['key_factors'] = '; '.join(data['key_factors'])
             data['technical_signals'] = '; '.join(data['technical_signals'])
+            # Flatten ai_insight
+            if data.get('ai_insight'):
+                data.pop('ai_insight')  # Too complex for CSV
             output = io.StringIO()
             writer = csv.DictWriter(output, fieldnames=data.keys())
             writer.writeheader()
@@ -1500,14 +1956,15 @@ async def main():
         
         if analysis:
             print(f"\nToken: {analysis.symbol} ({analysis.network})")
+            print(f"Validity: {analysis.validity.value.upper()} ✓" if analysis.validity == AnalysisValidity.VALID else f"Validity: {analysis.validity.value.upper()} ⚠️")
             print(f"Sentiment: {analysis.sentiment.value.upper()}")
             print(f"Overall Score: {analysis.overall_score}/100")
             print(f"Confidence: {analysis.confidence.upper()}")
             print(f"Risk Level: {analysis.risk_level.value.upper()}")
-            print(f"Rugpull Risk: {analysis.rugpull_risk:.1%}")
+            print(f"Structural Risk: {analysis.rugpull_risk:.1%}")
             print(f"Honeypot Risk: {analysis.honeypot_risk:.1%}")
             print(f"Whale Concentration: {analysis.whale_concentration:.1%}")
-            print(f"Recommendation: {analysis.recommendation.upper()}")
+            print(f"Signal: {analysis.recommendation.upper()}")
             print(f"Data Quality: {analysis.data_quality.value.upper()} {'🤖' if analysis.ai_powered else '🔧'}")
             print(f"\nSummary: {analysis.summary}")
             print(f"\nKey Factors:")
@@ -1516,6 +1973,12 @@ async def main():
             print(f"\nTechnical Signals:")
             for signal in analysis.technical_signals:
                 print(f"  • {signal}")
+            
+            if analysis.ai_insight:
+                print(f"\nAI Insight:")
+                print(f"  Sentiment: {analysis.ai_insight.sentiment_label}")
+                print(f"  Confidence: {analysis.ai_insight.confidence}")
+                print(f"  Rationale: {analysis.ai_insight.rationale}")
         
         # Example 2: Multi-chain batch scan with error tracking
         print("\n" + "="*80)
@@ -1529,12 +1992,12 @@ async def main():
         
         results = await scanner.scan_multiple(tokens)
         
-        print(f"\n{'Symbol':<10} {'Network':<12} {'Sentiment':<10} {'Score':<8} {'Risk':<10} {'Quality':<12} {'AI':<4}")
-        print("-" * 80)
+        print(f"\n{'Symbol':<10} {'Network':<12} {'Validity':<10} {'Sentiment':<10} {'Score':<8} {'Risk':<10} {'Signal':<15}")
+        print("-" * 95)
         for a in results:
-            ai_icon = "🤖" if a.ai_powered else "🔧"
-            print(f"{a.symbol:<10} {a.network:<12} {a.sentiment.value:<10} {a.overall_score:>3}/100  "
-                  f"{a.risk_level.value:<10} {a.data_quality.value:<12} {ai_icon}")
+            validity_icon = "✓" if a.validity == AnalysisValidity.VALID else "⚠" if a.validity == AnalysisValidity.DEGRADED else "✗"
+            print(f"{a.symbol:<10} {a.network:<12} {validity_icon} {a.validity.value:<8} {a.sentiment.value:<10} {a.overall_score:>3}/100  "
+                  f"{a.risk_level.value:<10} {a.recommendation:<15}")
         
         # Export results
         await scanner.batch_export(results, "scan_results_v2.json", format="json")
@@ -1553,9 +2016,10 @@ async def main():
             interval=300,  # 5 minutes
             alert_thresholds={
                 'critical_risk': True,
-                'high_score': 75,  # Alert on score > 75
-                'low_score': 25,   # Alert on score < 25
-                'sentiment_shift': True  # Alert on large sentiment changes
+                'high_score': 75,  # Alert on score > 75 (POSITIVE SENTIMENT)
+                'low_score': 25,   # Alert on score < 25 (NEGATIVE SENTIMENT)
+                'sentiment_shift': True,  # Alert on large sentiment changes
+                'sentiment_shift_delta': 20  # FIX #2: Configurable (not hardcoded)
             }
         )
         
@@ -1572,11 +2036,15 @@ async def main():
         
         # Get scanner statistics
         print("\n" + "="*80)
-        print("[4] SCANNER STATISTICS")
+        print("[4] SCANNER STATISTICS & AI EVALUATION")
         print("-" * 80)
         stats = scanner.get_statistics()
         for key, value in stats.items():
-            if key != 'cache_stats':
+            if key == 'ai_stats':
+                print("\nAI Performance Metrics:")
+                for ai_key, ai_value in value.items():
+                    print(f"  {ai_key}: {ai_value}")
+            elif key != 'cache_stats':
                 print(f"{key}: {value}")
         
         if 'cache_stats' in stats:

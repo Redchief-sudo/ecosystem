@@ -71,11 +71,22 @@ class ConfigValidator:
             if structure_errors:
                 raise ValueError("\n".join(["Configuration validation failed:"] + structure_errors))
             
-            # Check environment variables
-            missing_vars = cls.validate_environment()
-            if missing_vars:
-                raise EnvironmentError(f"Missing required environment variables: {', '.join(missing_vars)}")
-            
+            # Check environment variables unless explicitly running in paper/simulation mode
+            trading_mode = (
+                config.get('trading', {})
+                .get('trading_mode', '')
+                .strip()
+                .lower()
+            )
+            is_paper = trading_mode == 'paper'
+
+            if not is_paper:
+                missing_vars = cls.validate_environment()
+                if missing_vars:
+                    raise EnvironmentError(
+                        f"Missing required environment variables: {', '.join(missing_vars)}"
+                    )
+
             return config
             
         except FileNotFoundError:

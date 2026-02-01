@@ -15,7 +15,7 @@ from .multi_chain_models import ChainType, AddressType
 logger = logging.getLogger(__name__)
 
 
-class ChainNormalizer:
+class AddressNormalizer:
     """Base class for chain-specific address normalizers."""
     
     @staticmethod
@@ -34,7 +34,7 @@ class ChainNormalizer:
         raise NotImplementedError
 
 
-class EVMNormalizer(ChainNormalizer):
+class EVMNormalizer(AddressNormalizer):
     """Normalizer for EVM chains (Ethereum, BSC, Polygon, etc.)."""
     
     EVM_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{40}$")
@@ -58,7 +58,7 @@ class EVMNormalizer(ChainNormalizer):
         return AddressType.EVM
 
 
-class SolanaNormalizer(ChainNormalizer):
+class SolanaNormalizer(AddressNormalizer):
     """Normalizer for Solana addresses."""
     
     SOLANA_ADDRESS_PATTERN = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
@@ -82,7 +82,7 @@ class SolanaNormalizer(ChainNormalizer):
         return AddressType.SOLANA
 
 
-class AptosNormalizer(ChainNormalizer):
+class AptosNormalizer(AddressNormalizer):
     """Normalizer for Aptos addresses."""
     
     APTOS_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{64}$")
@@ -106,7 +106,7 @@ class AptosNormalizer(ChainNormalizer):
         return AddressType.APTOS
 
 
-class SuiNormalizer(ChainNormalizer):
+class SuiNormalizer(AddressNormalizer):
     """Normalizer for Sui addresses."""
     
     SUI_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{64}$")
@@ -130,7 +130,7 @@ class SuiNormalizer(ChainNormalizer):
         return AddressType.SUI
 
 
-class CosmosNormalizer(ChainNormalizer):
+class CosmosNormalizer(AddressNormalizer):
     """Normalizer for Cosmos SDK chains."""
     
     # Basic bech32 pattern (simplified - full validation is complex)
@@ -155,7 +155,7 @@ class CosmosNormalizer(ChainNormalizer):
         return AddressType.COSMOS
 
 
-class BitcoinNormalizer(ChainNormalizer):
+class BitcoinNormalizer(AddressNormalizer):
     """Normalizer for Bitcoin addresses."""
     
     # Legacy addresses (base58)
@@ -200,7 +200,7 @@ class MultiChainNormalizer:
     }
     
     @classmethod
-    def get_normalizer(cls, chain_type: ChainType) -> ChainNormalizer:
+    def get_normalizer(cls, chain_type: ChainType) -> AddressNormalizer:
         """Get the appropriate normalizer for a chain type."""
         normalizer = cls._normalizers.get(chain_type)
         if not normalizer:

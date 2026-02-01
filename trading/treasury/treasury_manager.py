@@ -14,7 +14,7 @@ from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from utils.health_check import HealthStatus, standard_health_check
+from core.health_check import HealthStatus, standard_health_check
 
 logger = logging.getLogger(__name__)
 

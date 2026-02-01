@@ -11,6 +11,9 @@ from eth_account.signers.local import LocalAccount
 from flashbots import FlashbotProvider, flashbot
 from web3 import Web3
 from web3.middleware import geth_poa_middleware
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MEVProtector:
@@ -20,7 +23,7 @@ class MEVProtector:
     
     def __init__(self, w3: Web3, private_key: str):
         """
-        Initialize MEV protector.
+        Initialize MEV protector with Flashbots integration.
         
         Args:
             w3: Web3 instance
@@ -28,11 +31,19 @@ class MEVProtector:
         """
         self.w3 = w3
         self.account: LocalAccount = w3.eth.account.from_key(private_key)
-        # Initialize Flashbots with the web3 instance and account
-        self.w3 = flashbot(w3, self.account)
-        # Access the flashbots namespace that was added by the flashbot() function
-        self.flashbots = self.w3.flashbots
+        self.private_key = private_key
         self.nonce_cache = {}
+        self.flashbots_enabled = False
+        
+        # Try to initialize Flashbots
+        try:
+            # Apply Flashbots middleware
+            self.w3 = flashbot(w3, self.account)
+            self.flashbots_enabled = True
+            logger.info("✅ Flashbots MEV protection enabled")
+        except Exception as e:
+            logger.warning(f"⚠️ Flashbots initialization failed: {e}. Falling back to regular transactions.")
+            self.flashbots_enabled = False
         
     async def protect_transaction(self, 
                                tx: Dict[str, Any], 
@@ -64,7 +75,7 @@ class MEVProtector:
     
     async def send_private_transaction(self, tx: Dict[str, Any]) -> str:
         """
-        Send transaction through private mempool to avoid front-running.
+        Send transaction through Flashbots or fallback to regular network.
         
         Args:
             tx: Transaction dictionary
@@ -73,26 +84,39 @@ class MEVProtector:
             Transaction hash
         """
         # Sign the transaction
-        signed_tx = self.w3.eth.account.sign_transaction(tx, self.account.key)
+        signed_tx = self.w3.eth.account.sign_transaction(tx, self.private_key)
         
-        # Send through Flashbots
-        bundle = [{
-            'signed_transaction': signed_tx.rawTransaction.hex()
-        }]
+        # Try Flashbots bundle if enabled
+        if self.flashbots_enabled:
+            try:
+                bundle = [{
+                    'signed_transaction': signed_tx.rawTransaction.hex()
+                }]
+                
+                # Target next block
+                target_block = await self.w3.eth.block_number + 1
+                
+                # Send bundle through Flashbots
+                result = await self.w3.flashbots.send_bundle(
+                    bundle,
+                    target_block_number=target_block
+                )
+                
+                if 'bundleHash' in result:
+                    logger.info(f"✅ Transaction sent via Flashbots: {result['bundleHash']}")
+                    return result['bundleHash']
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Flashbots bundle failed: {e}. Falling back to regular transaction.")
         
-        # Target next block
-        target_block = await self.w3.eth.block_number + 1
-        
-        # Send bundle
-        result = await self.flashbots.send_bundle(
-            bundle,
-            target_block_number=target_block
-        )
-        
-        if 'bundleHash' in result:
-            return result['bundleHash']
-        
-        raise Exception(f"Failed to send private transaction: {result}")
+        # Fallback: send regular transaction
+        try:
+            tx_hash = await self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            logger.info(f"📤 Transaction sent (regular): {tx_hash.hex()}")
+            return tx_hash.hex()
+        except Exception as e:
+            logger.error(f"❌ Failed to send transaction: {e}")
+            raise Exception(f"Failed to send transaction: {e}")
     
     async def _get_nonce(self) -> int:
         """Get the next nonce, with caching to avoid nonce conflicts."""

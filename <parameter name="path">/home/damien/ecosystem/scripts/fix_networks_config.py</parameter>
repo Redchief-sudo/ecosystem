@@ -1,0 +1,28 @@
+<parameter name="content">#!/usr/bin/env python3
+"""
+Script to update config_unified.yaml with networks from networks_clean.yaml
+"""
+
+import yaml
+
+def main():
+    # Read networks_clean.yaml
+    with open('/home/damien/ecosystem/config/networks_clean.yaml', 'r') as f:
+        networks_clean = yaml.safe_load(f)
+    
+    # Read config_unified.yaml
+    with open('/home/damien/ecosystem/config/config_unified.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Replace the networks section
+    config['networks'] = networks_clean['networks']
+    
+    # Write back
+    with open('/home/damien/ecosystem/config/config_unified.yaml', 'w') as f:
+        yaml.dump(config, f, default_flow_style=False, sort_keys=False, indent=2)
+    
+    print("Successfully updated config_unified.yaml with networks from networks_clean.yaml")
+
+if __name__ == '__main__':
+    main()
+</parameter>

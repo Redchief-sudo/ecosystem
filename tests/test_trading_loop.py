@@ -8,7 +8,7 @@ import sys
 
 sys.path.append('/home/damien/ecosystem')
 
-from trading.strategy_interface import (ExampleArbitrageStrategy,
+from trading.bridges.strategy_interface import (ExampleArbitrageStrategy,
                                         ExampleMomentumStrategy)
 
 
@@ -61,7 +61,7 @@ def test_trading_loop_integration():
             signal = await strategy.evaluate(market_data)
             print(f"  ✅ {strategy.name}: market_data={bool(market_data)}, signal={bool(signal)}")
         
-        return True
+
     
     # Test the trading loop flow
     async def test_trading_flow():
@@ -106,7 +106,7 @@ def test_trading_loop_integration():
         else:
             print(f"    📊 No signal generated")
         
-        return True
+
     
     # Test concurrent strategy execution
     async def test_concurrent_strategies():
@@ -130,7 +130,7 @@ def test_trading_loop_integration():
         for name, has_signal in results:
             print(f"    ✅ {name}: signal={has_signal}")
         
-        return True
+
     
     # Test error isolation
     async def test_error_isolation():
@@ -176,7 +176,7 @@ def test_trading_loop_integration():
         for name, status, result in results:
             print(f"    {'✅' if status == 'SUCCESS' else '❌'} {name}: {status} - {result}")
         
-        return True
+
     
     # Run all tests
     async def run_all_tests():
@@ -187,37 +187,29 @@ def test_trading_loop_integration():
             test_concurrent_strategies,
             test_error_isolation
         ]
-        test_tasks = [asyncio.create_task(test()) for test in tests]
-        results = await asyncio.gather(*test_tasks)
-        
-        return all(results)
+        for test in tests:
+            await test()
     
     # Execute tests
     try:
-        success = asyncio.run(run_all_tests())
+        asyncio.run(run_all_tests())
         
         print(f"\n🎯 Trading Loop Integration Test Results:")
         print(f"  ✅ Strategy interface: Working")
         print(f"  ✅ Trading flow: Working")
         print(f"  ✅ Concurrent execution: Working")
         print(f"  ✅ Error isolation: Working")
-        
-        if success:
-            print(f"\n🚀 All trading loop integration tests passed!")
-            print(f"  ✅ Architecture properly implemented")
-            print(f"  ✅ Async concurrency working")
-            print(f"  ✅ Error isolation functional")
-            print(f"  ✅ Ready for production use")
-        else:
-            print(f"\n❌ Some tests failed")
-        
-        return success
+        print(f"\n🚀 All trading loop integration tests passed!")
+        print(f"  ✅ Architecture properly implemented")
+        print(f"  ✅ Async concurrency working")
+        print(f"  ✅ Error isolation functional")
+        print(f"  ✅ Ready for production use")
         
     except Exception as e:
         print(f"❌ Test execution failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"Test execution failed: {e}"
 
 if __name__ == "__main__":
     success = test_trading_loop_integration()

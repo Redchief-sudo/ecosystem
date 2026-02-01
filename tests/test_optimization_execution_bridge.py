@@ -7,9 +7,9 @@ sys.path.insert(0, '/home/damien/ecosystem')
 
 from decimal import Decimal
 
-from trading.trade_engine import (DecisionOutcome, StrategyDecision,
-                                  TradingEngine)
-from trading.trade_optimizer import (ExecutionPlan, TradeIntent,
+from trading.execution.trade_engine import TradingEngine
+from trading.models import DecisionOutcome, StrategyDecision
+from trading.trade_intent.trade_optimizer import (ExecutionPlan, TradeIntent,
                                      TradeIntentCompiler)
 
 print("🎯 Testing Optimization → Execution Bridge Fixes...")
@@ -81,7 +81,7 @@ try:
     
     # Test ExecutionPlan creation (canonical structure)
     print("\n🏗️ Testing ExecutionPlan structure...")
-    from trading.trade_optimizer import ExecutionPlan
+    from trading.trade_intent.trade_optimizer import ExecutionPlan
     
     execution_plan = ExecutionPlan(
         # Core specification

@@ -338,7 +338,7 @@ class MultiChainTokenDeduplicator:
 
 
 # Global deduplicator instance
-multi_chain_deduplicator = MultiChainTokenDeduplicator()
+multi_chain_deduplicator = MultiChainTokenDeduplicator(ttl_seconds=60)
 
 
 __all__ = [

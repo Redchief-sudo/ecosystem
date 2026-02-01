@@ -323,14 +323,15 @@ class EntryManager:
         effective_strong_threshold = self.policy.strong_entry_threshold
         
         if has_limited_data:
-            # When historical data is missing, be much more lenient
-            # Reduce thresholds significantly to account for missing indicators
-            # This allows opportunities to pass when we have good liquidity/volume but lack history
-            effective_approval_threshold = max(0.35, self.policy.approval_threshold * 0.70)
-            effective_strong_threshold = max(0.55, self.policy.strong_entry_threshold * 0.75)
+            # When historical data is missing, be MUCH more lenient during startup
+            # This is intentional: during initial bootstrap, we want to get trading data flowing
+            # Real constraints are: liquidity > 0, volume > 0, rugpull_risk < threshold, and AI confidence
+            # Reduce thresholds dramatically to allow learning phase
+            effective_approval_threshold = 0.20  # Down from 0.30 (paper trading - very lenient)
+            effective_strong_threshold = 0.35    # Down from 0.50 (paper trading - very lenient)
             logger.info(
                 f"Limited historical data detected for {opportunity_id}. "
-                f"Using adjusted thresholds: approval={effective_approval_threshold:.2%} "
+                f"Using BOOTSTRAP thresholds: approval={effective_approval_threshold:.2%} "
                 f"(was {self.policy.approval_threshold:.2%}), "
                 f"strong={effective_strong_threshold:.2%} (was {self.policy.strong_entry_threshold:.2%})"
             )

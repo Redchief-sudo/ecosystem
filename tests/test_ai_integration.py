@@ -1,6 +1,5 @@
 import asyncio
 import logging
-
 from ai.elite_async_ai_controller import EliteAsyncAIController as AIController
 
 logging.basicConfig(level=logging.INFO)
@@ -24,14 +23,11 @@ async def test_ai_controller():
     decision = await ai_controller.make_decision(token_data)
     
     print("AI Controller Decision:")
-    for key, value in decision.items():
-        print(f"  {key}: {value}")
+    for field, value in decision.__dict__.items():
+        print(f"  {field}: {value}")
     
-    # Test elite controller methods
-    stats = ai_controller.elite_controller.get_controller_statistics()
-    print("\nElite Controller Statistics:")
-    print(f"  Total strategies: {stats['overview']['total_strategies']}")
-    print(f"  Active strategies: {stats['overview']['active_strategies']}")
+    # Test readiness
+    print(f"AI Controller Ready: {ai_controller.is_ready}")
 
 if __name__ == "__main__":
     asyncio.run(test_ai_controller())

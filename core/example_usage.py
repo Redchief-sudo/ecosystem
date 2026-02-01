@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from core import (AsyncHealthCheckable, ContextLogger, DatabaseManager,
                   HealthCheckable, LoggedComponent, Singleton)
-from utils.health_check import HealthStatus
+from core.health_check import HealthStatus
 
 
 class ExampleDatabaseManager(DatabaseManager):

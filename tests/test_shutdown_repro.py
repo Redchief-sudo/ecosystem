@@ -3,8 +3,14 @@ from decimal import Decimal
 
 import pytest
 
-from ai.elite_ai_controller import EliteAsyncAIController
-from trading.trade_engine import SystemState, TradingEngine
+from ai.elite_async_ai_controller import EliteAsyncAIController
+from trading.execution.trade_engine import TradingEngine
+
+# Minimal SystemState enum for tests
+class SystemState:
+    INITIALIZED = "INITIALIZED"
+    RUNNING = "RUNNING"
+    SHUTDOWN = "SHUTDOWN"
 
 
 class MinimalScanDirector:
@@ -27,7 +33,7 @@ async def test_trading_engine_shutdown_during_startup_no_exception():
     This test uses minimal, real components (no mocks) and ensures calling
     stop() shortly after start() does not produce exceptions or leave tasks running.
     """
-    controller = EliteAsyncAIController(config={'health_check_interval': 0.01}, total_capital=Decimal('1000'))
+    controller = EliteAsyncAIController(config={'health_check_interval': 0.01})
 
     # Initialize the AI controller (deterministic async init)
     await controller.async_initialize()
@@ -81,7 +87,7 @@ async def test_trading_engine_with_zero_portfolio_value_does_not_raise_on_start_
         def get_portfolio_value(self) -> float:
             return 0.0
 
-    controller = ZeroPortfolioController(config={'health_check_interval': 0.01}, total_capital=Decimal('0'))
+    controller = ZeroPortfolioController(config={'health_check_interval': 0.01})
     # Do not call async_initialize to simulate partial init
 
     scan_director = MinimalScanDirector()
@@ -114,7 +120,7 @@ async def test_trading_engine_with_zero_portfolio_value_does_not_raise_on_start_
 @pytest.mark.asyncio
 async def test_trading_engine_stop_idempotent():
     """Calling stop() multiple times should be safe and idempotent."""
-    controller = EliteAsyncAIController(config={'health_check_interval': 0.01}, total_capital=Decimal('1000'))
+    controller = EliteAsyncAIController(config={'health_check_interval': 0.01})
     await controller.async_initialize()
 
     engine = TradingEngine(
@@ -149,7 +155,7 @@ async def test_trading_engine_stop_idempotent():
 async def test_network_degraded_startup_does_not_block_engine():
     """Starting the network manager with bad RPCs should not prevent the engine from starting
     or shutting down cleanly. This uses real components and no mocks."""
-    from network.multi_chain_manager import MultiChainManager
+    from networks.universal_network_manager import UniversalNetworkManager
 
     # Use clearly invalid RPC endpoints to simulate degradation
     cfg = {
@@ -162,12 +168,12 @@ async def test_network_degraded_startup_does_not_block_engine():
         }
     }
 
-    network_mgr = MultiChainManager(cfg, private_key='')
+    network_mgr = UniversalNetworkManager(cfg, private_key='')
 
     # Initialization should not raise, even if RPCs are unreachable
     await network_mgr.initialize()
 
-    controller = EliteAsyncAIController(config={'health_check_interval': 0.01}, total_capital=Decimal('1000'))
+    controller = EliteAsyncAIController(config={'health_check_interval': 0.01})
     await controller.async_initialize()
     controller.network_manager = network_mgr
 

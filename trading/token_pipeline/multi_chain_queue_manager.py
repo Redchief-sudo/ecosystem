@@ -8,6 +8,7 @@ Concurrency-safe. Lossless. Chain-invariant enforcing.
 
 import asyncio
 import logging
+import threading
 import time
 from typing import Dict, Optional
 from dataclasses import dataclass
@@ -85,12 +86,13 @@ class MultiChainQueueManager:
         stats.total_enqueued += 1
         stats.last_activity = time.time()
 
-        logger.debug(
-            "Enqueued %s -> %s | size=%s/%s",
+        logger.info(
+            "[QM-ENQUEUE] %s -> %s | size=%s/%s | id=%s",
             candidate.symbol,
             candidate.chain_type.value,
             queue.qsize(),
             self.max_queue_size,
+            id(self),  # Track which queue manager instance
         )
 
         return True
@@ -112,13 +114,14 @@ class MultiChainQueueManager:
         try:
             candidate = await asyncio.wait_for(queue.get(), timeout)
         except asyncio.TimeoutError:
+            logger.info("[QM-DEQUEUE] Timeout waiting for %s", chain_type.value)
             return None
 
         stats.total_dequeued += 1
         stats.last_activity = time.time()
 
-        logger.debug(
-            "Dequeued %s <- %s | size=%s/%s",
+        logger.info(
+            "[QM-DEQUEUE] %s <- %s | size=%s/%s",
             candidate.symbol,
             chain_type.value,
             queue.qsize(),
@@ -149,11 +152,26 @@ class MultiChainQueueManager:
             ChainType.BITCOIN,
         )
 
+        logger.info(
+            "[QM-DEQUEUE_ANY] Checking queues (id=%s): EVM=%s, SOLANA=%s, APTOS=%s, SUI=%s, COSMOS=%s, BTC=%s",
+            id(self),
+            self.queues[ChainType.EVM].qsize(),
+            self.queues[ChainType.SOLANA].qsize(),
+            self.queues[ChainType.APTOS].qsize(),
+            self.queues[ChainType.SUI].qsize(),
+            self.queues[ChainType.COSMOS].qsize(),
+            self.queues[ChainType.BITCOIN].qsize(),
+        )
+
         # Fast path: immediate availability
         for chain_type in priority_order:
             queue = self.queues[chain_type]
             if not queue.empty():
-                return await self.dequeue(chain_type, timeout=0.0)
+                logger.info("[QM-DEQUEUE_ANY] Found token in %s queue, attempting dequeue with timeout=0.5s", chain_type.value)
+                result = await self.dequeue(chain_type, timeout=0.5)  # Use 0.5s instead of 0.0s to allow queue.get() to complete
+                if result:
+                    return result
+                logger.info("[QM-DEQUEUE_ANY] Dequeue timed out for %s despite queue showing %d items", chain_type.value, queue.qsize())
 
         # Slow path: wait deterministically
         end_time = time.monotonic() + timeout
@@ -161,7 +179,10 @@ class MultiChainQueueManager:
             for chain_type in priority_order:
                 queue = self.queues[chain_type]
                 if not queue.empty():
-                    return await self.dequeue(chain_type, timeout=0.0)
+                    logger.info("[QM-DEQUEUE_ANY] Found token in %s queue (slow path), attempting dequeue", chain_type.value)
+                    result = await self.dequeue(chain_type, timeout=0.5)  # Use 0.5s instead of 0.0s
+                    if result:
+                        return result
             await asyncio.sleep(0.01)
 
         return None
@@ -231,27 +252,69 @@ class MultiChainQueueManager:
 
 
 # ----------------------------------------------------------------------
-# GLOBAL ACCESS
+# GLOBAL ACCESS - SINGLETON PATTERN
 # ----------------------------------------------------------------------
 
 _queue_manager: Optional[MultiChainQueueManager] = None
+_queue_manager_lock = threading.Lock()
+_queue_manager_initialized = False
 
 
 def get_queue_manager() -> MultiChainQueueManager:
-    global _queue_manager
+    """
+    Get the global queue manager instance.
+    Thread-safe singleton pattern to ensure all components use the same instance.
+    """
+    global _queue_manager, _queue_manager_initialized
+    
     if _queue_manager is None:
-        _queue_manager = MultiChainQueueManager()
+        with _queue_manager_lock:
+            # Double-check pattern
+            if _queue_manager is None:
+                _queue_manager = MultiChainQueueManager()
+                _queue_manager_initialized = True
+                logger.info(f"[QM-SINGLETON] Created new queue manager instance: {id(_queue_manager)}")
+            else:
+                logger.info(f"[QM-SINGLETON] Using existing queue manager instance: {id(_queue_manager)}")
+    else:
+        logger.debug(f"[QM-SINGLETON] Returning existing queue manager instance: {id(_queue_manager)}")
+    
     return _queue_manager
 
 
 def initialize_queue_manager(max_queue_size: int = 1000) -> MultiChainQueueManager:
-    global _queue_manager
-    _queue_manager = MultiChainQueueManager(max_queue_size=max_queue_size)
-    return _queue_manager
+    """
+    Initialize the global queue manager with explicit parameters.
+    Should be called once during system startup.
+    """
+    global _queue_manager, _queue_manager_initialized
+    
+    with _queue_manager_lock:
+        if _queue_manager is not None and _queue_manager_initialized:
+            logger.info(f"[QM-SINGLETON] Queue manager already initialized: {id(_queue_manager)} - returning existing instance")
+            return _queue_manager
+        
+        if _queue_manager is None:
+            _queue_manager = MultiChainQueueManager(max_queue_size=max_queue_size)
+            _queue_manager_initialized = True
+            logger.info(f"[QM-SINGLETON] Created new queue manager: {id(_queue_manager)} with max_size={max_queue_size}")
+        else:
+            logger.warning(f"[QM-SINGLETON] Queue manager exists but not marked as initialized - marking as initialized: {id(_queue_manager)}")
+            _queue_manager_initialized = True
+            
+        return _queue_manager
+
+
+def is_queue_manager_initialized() -> bool:
+    """Check if the queue manager has been initialized."""
+    return _queue_manager is not None and _queue_manager_initialized
 
 
 async def enqueue_token(candidate: TokenCandidate) -> bool:
-    return await get_queue_manager().enqueue(candidate)
+    """Enqueue a token candidate with instance tracking for debugging."""
+    queue_manager = get_queue_manager()
+    logger.debug(f"[ENQUEUE] Using queue manager instance: {id(queue_manager)} for {candidate.symbol}")
+    return await queue_manager.enqueue(candidate)
 
 
 async def dequeue_token(
@@ -261,5 +324,8 @@ async def dequeue_token(
 
 
 async def dequeue_any_token(timeout: float = 1.0) -> Optional[TokenCandidate]:
-    return await get_queue_manager().dequeue_any(timeout)
+    """Dequeue from any chain with instance tracking for debugging."""
+    queue_manager = get_queue_manager()
+    logger.debug(f"[DEQUEUE_ANY] Using queue manager instance: {id(queue_manager)}")
+    return await queue_manager.dequeue_any(timeout)
 

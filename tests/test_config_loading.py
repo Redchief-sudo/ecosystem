@@ -52,7 +52,7 @@ def test_config_loading():
     assert networks, "No network configurations found"
 
     # Basic smoke assertions for some non-sensitive structure
-    assert hasattr(config, '_config') and isinstance(config._config, dict)
+    assert isinstance(config, dict)
 
     # If we've reached here, basic configuration loads successfully
     assert True

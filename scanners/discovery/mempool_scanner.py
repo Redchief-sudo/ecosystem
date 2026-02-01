@@ -83,6 +83,9 @@ CHAIN_GAS_CONFIG = {
     'arbitrum': {'typical_base': 0.1, 'spike_threshold': 1.0, 'units': 'gwei'},
     'optimism': {'typical_base': 0.001, 'spike_threshold': 0.01, 'units': 'gwei'},
     'polygon': {'typical_base': 50.0, 'spike_threshold': 200.0, 'units': 'gwei'},
+    'bsc': {'typical_base': 1.0, 'spike_threshold': 10.0, 'units': 'gwei'},
+    'avalanche': {'typical_base': 25.0, 'spike_threshold': 100.0, 'units': 'gwei'},
+    'fantom': {'typical_base': 1.0, 'spike_threshold': 10.0, 'units': 'gwei'},
 }
 
 
@@ -251,6 +254,14 @@ class MempoolScannerUltra(ScannerBase):
         'min_whale_value', 'min_mev_profit', 'min_arb_profit', 'max_slippage'
     ]
     
+    # Default config values - used when no config is provided
+    DEFAULT_CONFIG = {
+        'min_whale_value': 10.0,      # ETH (lowered from 100k USD to ~10 ETH)
+        'min_mev_profit': 0.05,        # ETH (lowered from 500 USD to ~0.05 ETH)
+        'min_arb_profit': 0.02,        # ETH (lowered from 250 USD to ~0.02 ETH)
+        'max_slippage': 0.05,          # 5%
+    }
+    
     def __init__(
         self,
         config: Optional[Dict] = None,
@@ -258,13 +269,13 @@ class MempoolScannerUltra(ScannerBase):
         network_manager = None,
         memory = None
     ):
-        # ✅ P0.1 FIX - Proper config validation
+        # ✅ P0.1 FIX - Use default config if none provided
         if not config:
-            raise ValueError("Mempool scanner requires explicit configuration")
-        
-        missing_keys = [key for key in self.REQUIRED_CONFIG_KEYS if key not in config]
-        if missing_keys:
-            raise ValueError(f"Mempool scanner missing required config keys: {missing_keys}")
+            logger.warning("No config provided, using default values")
+            config = self.DEFAULT_CONFIG.copy()
+        else:
+            # Merge provided config with defaults (defaults are fallback)
+            config = {**self.DEFAULT_CONFIG, **config}
         
         super().__init__(config)
         self.memory = memory
@@ -314,6 +325,11 @@ class MempoolScannerUltra(ScannerBase):
 
     async def _scan_network_impl(self, chain: str) -> List[Dict]:
         """✅ P0.2 + P2.8 FIX: Real tokens only, MEV as separate events"""
+        # Check if this chain is supported by the mempool scanner
+        if chain not in CHAIN_GAS_CONFIG:
+            logger.debug(f"Mempool scanner does not support chain: {chain}")
+            return []
+        
         try:
             snapshot = self.get_snapshot(chain)
             tokens = []
@@ -815,7 +831,7 @@ class MempoolScannerUltra(ScannerBase):
         
         logger.info(f"🚀 Starting mempool scanner on {len(chains)} chains")
         
-        from utils.task_manager import task_manager
+        from core.task_manager import task_manager
         for chain in chains:
             await self._detect_rpc_capabilities(chain)  # ✅ P1.5
 

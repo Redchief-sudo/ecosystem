@@ -372,27 +372,42 @@ class OnChainScannerUltra(ScannerBase):
     MAX_CONCURRENT_SCANS = 10  # P1: Concurrency limit
 
     def __init__(self, config: Optional[Dict] = None, memory: Any = None,
-                 network_config: Optional[Dict] = None, 
+                 network_config: Optional[Dict] = None,
                  price_oracle: Optional[Dict[str, float]] = None, **kwargs):
+        # ✅ IMMEDIATE FIX: Add startup configuration validation
+        if not config:
+            config = {}
+        config.setdefault("min_liquidity", 50000.0)
+        config.setdefault("max_top_10_concentration", 0.50)
+        config.setdefault("max_honeypot_probability", 0.20)
+
+        # Validate required config
+        if config["min_liquidity"] <= 0:
+            raise ValueError("min_liquidity must be > 0")
+        if not (0 < config["max_top_10_concentration"] <= 1):
+            raise ValueError("max_top_10_concentration must be between 0 and 1")
+        if not (0 <= config["max_honeypot_probability"] <= 1):
+            raise ValueError("max_honeypot_probability must be between 0 and 1")
+
         super().__init__(config=config, **kwargs)
-        
+
         self.network_config = network_config or {}
         self.memory = memory
-        
+
         # P1: Configurable price oracle
         self.price_oracle = price_oracle or {'ETH': 2000.0, 'BNB': 300.0, 'MATIC': 0.8}
-        
+
         # State
         self.web3_providers: Dict[str, Web3] = {}
         self.wallet_cache: Dict[str, WalletProfile] = {}
         self.contract_cache: Dict[str, ContractAnalysis] = {}
-        
+
         # P1: Concurrency control
         self.scan_semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_SCANS)
-        
+
         # P2: Clustering
         self.clustering_engine = WalletClusteringEngine()
-        
+
         logger.info("✅ OnChain Scanner initialized (All P0/P1/P2 fixes)")
 
     async def scan(self, chain: str = None) -> List[Dict]:

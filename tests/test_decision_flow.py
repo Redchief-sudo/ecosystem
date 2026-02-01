@@ -15,7 +15,7 @@ from ai.elite_async_ai_controller import (EliteAsyncAIController, MarketRegime,
 from trading.models import (AssetClass, DecisionOutcome, MarketData, OrderSide,
                             OrderType, StrategyDecision, TimeInForce,
                             TokenInfo, TradeOpportunity)
-from trading.trade_engine import TradingEngine
+from trading.execution.trade_engine import TradingEngine
 
 # Configure logging
 logging.basicConfig(

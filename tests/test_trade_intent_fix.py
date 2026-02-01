@@ -3,9 +3,8 @@
 
 from decimal import Decimal
 
-from trading.models import MarketData, TokenInfo, TradeOpportunity
-from trading.trade_engine import DecisionOutcome, StrategyDecision
-from trading.trade_optimizer import TradeIntent, TradeIntentCompiler, TradeSide
+from trading.models import MarketData, TokenInfo, TradeOpportunity, DecisionOutcome, StrategyDecision
+from trading.trade_intent.trade_optimizer import TradeIntent, TradeIntentCompiler, TradeSide
 
 print("🎯 Testing TradeIntent fix...")
 

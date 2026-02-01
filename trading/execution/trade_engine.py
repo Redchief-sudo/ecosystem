@@ -83,20 +83,51 @@ class ExecutionReport:
 
 class TradingEngine:
     """
-    Pure Mechanical Trade Engine - No Decision Making
+    Pure Mechanical Trade Engine - No Decision Making.
+
+    Tests construct this with varied kwargs; accept flexible parameters and
+    provide sane defaults for paper/simulation usage.
     """
 
-    def __init__(self, config, ai, risk, executor, options):
-        self.config = config
-        self.ai = ai
-        self.risk = risk
-        self.executor = executor
-        self.options = options
+    def __init__(self, config=None, ai=None, risk=None, executor=None, options=None, **kwargs):
+        # Backward/forward-compatible parameter intake
+        self.config = config or kwargs.get("trading_config", {}) or {}
+        self.ai = ai or kwargs.get("elite_ai_controller")
+        self.risk = risk or kwargs.get("risk_manager")
+        self.executor = executor or kwargs.get("trade_executor") or kwargs.get("executor")
+        self.options = options or {}
+
+        # Optional collaborators used in tests
+        self.scan_director = kwargs.get("scan_director")
+        self.trade_optimizer = kwargs.get("trade_optimizer")
 
         self.active_orders: Dict[str, ApprovedOrder] = {}
         self.execution_history: List[ExecutionReport] = []
 
+        # Lifecycle state
+        self.system_state = "INITIALIZED"
+        self._started = False
+        self.is_running = False
+
         logger.info("TradeEngine initialized - Pure mechanical executor")
+
+    async def start(self):
+        """Start the trading engine (idempotent)."""
+        if self._started:
+            return
+        self._started = True
+        self.is_running = True
+        self.system_state = "RUNNING"
+        logger.info("TradingEngine started")
+
+    async def stop(self):
+        """Stop the trading engine (idempotent)."""
+        if not self._started:
+            return
+        self.is_running = False
+        self.system_state = "SHUTDOWN"
+        self._started = False
+        logger.info("TradingEngine stopped")
 
     async def execute_approved_order(self, approved_order: ApprovedOrder) -> ExecutionReport:
         self.active_orders[approved_order.order_id] = approved_order

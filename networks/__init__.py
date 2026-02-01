@@ -11,9 +11,11 @@ from .chain_constants import ChainConstants, get_chain_id
 from .chain_execution_policy import ChainExecutionPolicy, chain_execution_policy
 from .chain_normalizer import ChainNormalizer, chain_normalizer
 from .cross_chain_mapper import CrossChainAddressMapper
-from .multi_chain_manager import MultiChainManager
 from .network_verifier import NetworkVerifier
 from .universal_network_manager import UniversalNetworkManager
+
+# Alias for tests expecting NetworkManager
+NetworkManager = UniversalNetworkManager
 
 # New multi-chain components
 from .multi_chain_models import (
@@ -27,14 +29,13 @@ from .multi_chain_models import (
 )
 
 from .chain_normalizers import (
-    ChainNormalizer as MultiChainNormalizer,
+    AddressNormalizer,
     EVMNormalizer,
     SolanaNormalizer,
     AptosNormalizer,
     SuiNormalizer,
     CosmosNormalizer,
     BitcoinNormalizer,
-    MultiChainNormalizer as ChainNormalizerFactory,
     normalize_address,
     validate_address,
     detect_and_normalize_address
@@ -56,9 +57,9 @@ __all__ = [
     'ChainNormalizer',
     'chain_normalizer',
     'CrossChainAddressMapper',
-    'MultiChainManager',
     'NetworkVerifier',
     'UniversalNetworkManager',
+    'NetworkManager',
     # New multi-chain exports
     'ChainType',
     'AddressType',
@@ -67,14 +68,13 @@ __all__ = [
     'get_chain_type',
     'detect_address_type',
     'CHAIN_TYPE_MAPPING',
-    'MultiChainNormalizer',
+    'AddressNormalizer',
     'EVMNormalizer',
     'SolanaNormalizer',
     'AptosNormalizer',
     'SuiNormalizer',
     'CosmosNormalizer',
     'BitcoinNormalizer',
-    'ChainNormalizerFactory',
     'normalize_address',
     'validate_address',
     'detect_and_normalize_address',

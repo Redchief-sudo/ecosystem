@@ -38,6 +38,8 @@ from risk.risk_verdict import RiskVerdict
 
 from trading.trade_intent.trade_intent import TradeIntent, TradeSide
 from trading.execution.trade_engine import ApprovedOrder
+from trading.pnl_models import TradePnL
+from trading.pnl_tracker import PnLTracker
 
 from trading.token_pipeline.token_candidate import TokenCandidate
 
@@ -70,35 +72,53 @@ def compose_system(project_root: Path) -> "SystemComposition":
 
     from trading.execution.trade_engine import TradingEngine
     from trading.execution.trade_executor import HybridTradeExecutor
+    from trading.execution.post_trade_manager import PostTradeManager
     from trading.token_pipeline.token_registry import TokenRegistry
     from trading.token_pipeline.multi_chain_ingestion import initialize_multi_chain_ingestion_pipeline
+    from trading.token_pipeline import initialize_queue_manager
     from trading.trading_mode import TradingModeManager
 
     from router.hybrid_router_manager import HybridRouterManager
-    from config.network_config import NetworkConfig
+    from networks.universal_network_manager import UniversalNetworkManager
     from config import load_config
+    from utils.profit_engine import ProfitEngine
+    from utils.ownership_guard import OwnershipGuard
+    from data_sources.data_manager import DataManager
 
     config = load_config()
 
+    # Initialize ownership guard for startup verification and runtime kill-switch
+    ownership_guard = OwnershipGuard(
+        config=config,
+        kill_switch_path=config.get('ownership', {}).get('kill_switch_path', 'kill.switch'),
+    )
+    ownership_guard.verify_startup()
+
     decision_queue: asyncio.Queue[TokenCandidate] = asyncio.Queue(maxsize=1000)
     opportunity_queue: asyncio.Queue[TradeOpportunity] = asyncio.Queue(maxsize=1000)
+
+    # Initialize the multi-chain queue manager
+    initialize_queue_manager()
 
     ingestion_pipeline = initialize_multi_chain_ingestion_pipeline(
         config.get("ai", {})
     )
 
     health_manager = HealthMonitor()
-    network_config = NetworkConfig()
+    
+    # Use UniversalNetworkManager - this pulls RPCs from config_unified.yaml
+    # This is critical for scanners to work - they need actual network clients
+    # The UniversalNetworkManager reads networks from config["networks"]
+    network_manager = UniversalNetworkManager(config)
 
+    # Pass the full unified config so the HybridRouterManager can access `networks`.
     router_manager = HybridRouterManager(
-        network_manager=network_config,
-        config=config.get("routing", {})
+        network_manager=network_manager,
+        config=config
     )
 
-    config = load_config()
     strategies = create_strategies_from_config(config, registry)
     strategy_manager = EliteStrategyManager(strategies)
-
 
     neural_brain = NeuralBrain(config=config.get("neural_brain", {}))
 
@@ -111,17 +131,33 @@ def compose_system(project_root: Path) -> "SystemComposition":
     )
 
     scan_director = ScanDirector(
-        network_manager=network_config,
+        network_manager=network_manager,
         config=config,
         ai_controller=ai_controller
     )
 
     trade_executor = HybridTradeExecutor(
         config=config.get("trading", {}),
-        network_manager=network_config,
+        network_manager=network_manager,
         hybrid_router_manager=router_manager,
         trading_mode=None
     )
+
+    # Initialize profit engine for wallet balance tracking
+    profit_engine = ProfitEngine()
+
+    # Initialize data manager for opportunity enrichment
+    data_manager = DataManager(
+        db_path=config.get("database", {}).get("path", "database/trades.db"),
+        network_manager=network_manager
+    )
+
+    # Initialize PnL tracker for profit/loss tracking and strategy performance
+    pnl_tracker = PnLTracker(data_dir=Path("data"))
+
+    # Initialize post-trade manager for position and risk management
+    post_trade_manager = PostTradeManager(config=config.get("trading", {}))
+    post_trade_manager.set_balance_tracking(profit_engine, trade_executor)
 
     trading_engine = TradingEngine(
         config=config.get("trading", {}),
@@ -144,12 +180,18 @@ def compose_system(project_root: Path) -> "SystemComposition":
     composition.components['trading_engine'] = trading_engine
     composition.components['trade_executor'] = trade_executor
     composition.components['token_registry'] = TokenRegistry(config.get("token_registry", {}))
-    composition.components['trading_mode_manager'] = TradingModeManager(config.get("trading_mode", {}))
+    composition.components['trading_mode_manager'] = TradingModeManager(config.get("trading", {}))
     composition.components['decision_queue'] = decision_queue
     composition.components['opportunity_queue'] = opportunity_queue
     composition.components['ingestion_pipeline'] = ingestion_pipeline
     composition.components['health_manager'] = health_manager
     composition.components['task_manager'] = task_manager
+    composition.components['profit_engine'] = profit_engine
+    composition.components['data_manager'] = data_manager
+    composition.components['pnl_tracker'] = pnl_tracker
+    composition.components['ownership_guard'] = ownership_guard
+    composition.components['post_trade_manager'] = post_trade_manager
+    composition.components['network_manager'] = network_manager
 
     composition.components['startup_director'] = get_startup_director(composition)
 
@@ -194,6 +236,60 @@ def get_usdc_address(chain: str) -> str:
     return usdc_addresses.get(chain.lower(), usdc_addresses['ethereum'])
 
 
+async def token_candidate_bridge(composition: SystemComposition) -> None:
+    """Bridge TokenCandidate objects from multi-chain queue to AI controller's decision_queue."""
+    log = logging.getLogger("token_bridge")
+    log.info("Token candidate bridge started")
+    
+    from trading.token_pipeline import dequeue_any_token
+    from trading.token_pipeline.multi_chain_queue_manager import get_queue_manager
+    
+    # Verify we're using the correct queue manager instance
+    queue_manager = get_queue_manager()
+    log.info(f"Token bridge using queue manager instance: {id(queue_manager)}")
+    
+    # Log initial queue state
+    stats = queue_manager.get_all_stats()
+    for chain_type, chain_stats in stats.items():
+        log.info(f"Initial {chain_type} queue: {chain_stats['current_size']} tokens")
+    
+    iteration_count = 0
+    
+    try:
+        while not composition.shutdown_requested:
+            try:
+                # Dequeue token candidate from any chain
+                candidate = await dequeue_any_token(timeout=1.0)
+                if candidate is None:
+                    iteration_count += 1
+                    if iteration_count % 10 == 0:
+                        log.info(f"Token bridge status - iteration {iteration_count}, queue empty")
+                        # Log queue stats for debugging
+                        stats = queue_manager.get_all_stats()
+                        total_tokens = sum(chain_stats['current_size'] for chain_stats in stats.values())
+                        log.info(f"Queue stats - Total tokens: {total_tokens} | {stats}")
+                    continue
+                
+                log.info(f"Bridging token candidate: {candidate.symbol} on {candidate.chain_type.value}")
+                
+                # Put TokenCandidate directly into decision_queue for AI controller to process
+                await composition.decision_queue.put(candidate)
+                log.info(f"Sent token candidate to AI controller decision_queue: {candidate.symbol} on {candidate.chain_type.value}")
+                iteration_count = 0  # Reset iteration counter when we process a token
+                
+            except asyncio.TimeoutError:
+                iteration_count += 1
+                if iteration_count % 10 == 0:
+                    log.info(f"Token bridge status - iteration {iteration_count}")
+                continue
+            except Exception as e:
+                log.error(f"Error in token bridge: {e}", exc_info=True)
+                await asyncio.sleep(1)
+                
+    except Exception as e:
+        log.error(f"Token bridge failed: {e}", exc_info=True)
+
+
 async def trading_loop(composition: SystemComposition) -> None:
     log = logging.getLogger("trading")
 
@@ -210,6 +306,9 @@ async def trading_loop(composition: SystemComposition) -> None:
                     timeout=1.0
                 )
                 log.info(f"Received opportunity: {opportunity.token.symbol} on {opportunity.chain}")
+                
+                # ENRICH: Add historical data and technical indicators
+                opportunity = await _enrich_opportunity(opportunity, composition)
             except asyncio.TimeoutError:
                 iteration_count += 1
                 if iteration_count % 10 == 0:
@@ -264,10 +363,11 @@ async def trading_loop(composition: SystemComposition) -> None:
                 "symbol": opportunity.token.symbol,
                 "market_cap": opportunity.metadata.get("market_cap") if opportunity.metadata else None,
                 "confidence": opportunity.confidence,
-                "price_history": [float(opportunity.market_data.price)],
-                "volume_history": [float(opportunity.market_data.volume_24h)],
-                "rsi": 50.0,
-                "volume_profile": 0.5,
+                # USE ENRICHED DATA - from opportunity enricher
+                "price_history": opportunity.metadata.get("price_history", [float(opportunity.market_data.price)]) if opportunity.metadata else [float(opportunity.market_data.price)],
+                "volume_history": opportunity.metadata.get("volume_history", [float(opportunity.market_data.volume_24h)]) if opportunity.metadata else [float(opportunity.market_data.volume_24h)],
+                "rsi": opportunity.metadata.get("technical_indicators", {}).get("rsi", 50.0) if opportunity.metadata else 50.0,
+                "volume_profile": opportunity.metadata.get("volume_profile", 0.5) if opportunity.metadata else 0.5,
                 "social_score": opportunity.metadata.get("social_score", 0.5) if opportunity.metadata else 0.5,
                 "holder_concentration": opportunity.metadata.get("holder_concentration", 0.5) if opportunity.metadata else 0.5,
                 "whale_activity": opportunity.metadata.get("whale_activity", 0.0) if opportunity.metadata else 0.0,
@@ -282,7 +382,8 @@ async def trading_loop(composition: SystemComposition) -> None:
                 opportunity.token.symbol,
                 entry_data
             )
-            if entry.verdict != EntryVerdict.APPROVE:
+            # Accept APPROVE verdicts, and allow CONDITIONAL during bootstrap (limited data)
+            if entry.verdict not in (EntryVerdict.APPROVE, EntryVerdict.CONDITIONAL):
                 log.warning(
                     f"Entry rejected: {opportunity.token.symbol} - "
                     f"Verdict: {entry.verdict.value}, Reason: {entry.reason}, "
@@ -301,6 +402,7 @@ async def trading_loop(composition: SystemComposition) -> None:
                 continue
 
             suggested_size = position.metadata.get('suggested_size', Decimal('0')) if position.metadata else Decimal('0')
+            log.debug(f"Position assessment for {opportunity.token.symbol}: verdict={position.verdict.value}, suggested_size={suggested_size}")
             
             # Skip trade if suggested size is 0 or too small
             if suggested_size <= 0:
@@ -329,7 +431,6 @@ async def trading_loop(composition: SystemComposition) -> None:
                 deadline=datetime.now(timezone.utc) + timedelta(minutes=5),
                 opportunity_id=opportunity.opportunity_id,
                 side=TradeSide.BUY,
-                base_asset="USDC"
             )
 
             if not hasattr(intent, 'amount_usd'):
@@ -353,10 +454,77 @@ async def trading_loop(composition: SystemComposition) -> None:
             log.info(f"Executing trade: {opportunity.token.symbol}")
             result = await composition.trading_engine.execute_approved_order(order)
             log.info(f"Trade result: {result.status}")
+            
+            # === NEW: Record entry into PnL tracker ===
+            if result.status == "executed":
+                # Get the best strategy recommendation for this opportunity
+                strategy_used = opportunity.metadata.get("recommended_strategy", "unknown") if opportunity.metadata else "unknown"
+                
+                # Record the opening trade
+                trade = TradePnL(
+                    token=opportunity.token.symbol,
+                    chain=opportunity.chain,
+                    strategy=strategy_used,
+                    entry_price=float(opportunity.market_data.price),
+                    exit_price=None,  # Not closed yet
+                    size=float(suggested_size),
+                    fees=0.0,  # Will be updated when position closes
+                    entry_time=datetime.now(timezone.utc).isoformat(),
+                    realized=False
+                )
+                
+                # Store trade ID for later closing
+                trade_id = order.order_id
+                composition.pnl_tracker.enter_trade(trade_id, trade)
+                log.debug(f"PnL entry recorded: {trade_id} for {opportunity.token.symbol}")
 
     finally:
         scanner_task.cancel()
         await asyncio.gather(scanner_task, return_exceptions=True)
+
+
+async def _enrich_opportunity(opportunity: TradeOpportunity, composition: SystemComposition) -> TradeOpportunity:
+    """
+    Enrich opportunity with historical data and technical indicators.
+    
+    This ensures the Entry Manager receives complete market data instead of
+    single data points, allowing it to make informed decisions based on real indicators.
+    
+    Args:
+        opportunity: Original opportunity from scanner/AI controller
+        composition: System composition for accessing data managers
+        
+    Returns:
+        Enriched opportunity with price history, volume history, and calculated indicators
+    """
+    log = logging.getLogger("enrichment")
+    
+    try:
+        from data_sources.opportunity_enricher import OpportunityEnricher
+        
+        # Create enricher with data manager
+        data_manager = composition.components.get("data_manager")
+        enricher = OpportunityEnricher(data_manager=data_manager)
+        
+        # Enrich the opportunity
+        enriched = await enricher.enrich(opportunity)
+        
+        if enriched.metadata and enriched.metadata.get("data_enriched"):
+            data_quality = enriched.metadata.get("data_quality", {})
+            log.info(
+                f"✅ Opportunity enriched: {enriched.token.symbol} "
+                f"({data_quality.get('overall_quality', 'unknown')} data quality, "
+                f"{data_quality.get('price_points', 0)} price points)"
+            )
+        
+        return enriched
+        
+    except ImportError:
+        log.warning("Opportunity enricher not available, using raw opportunity")
+        return opportunity
+    except Exception as e:
+        log.warning(f"Failed to enrich opportunity: {e}")
+        return opportunity
 
 
 async def scanner_loop(composition: SystemComposition) -> None:
@@ -383,7 +551,12 @@ async def main() -> None:
     await composition.ai_controller.mark_live()
 
     try:
-        await trading_loop(composition)
+        # Start both the token bridge and the trading loop
+        bridge_task = asyncio.create_task(token_candidate_bridge(composition))
+        trading_task = asyncio.create_task(trading_loop(composition))
+        
+        # Wait for either task to complete (usually due to shutdown)
+        await asyncio.gather(bridge_task, trading_task, return_exceptions=True)
     finally:
         composition.shutdown_requested = True
         await composition.ai_controller.shutdown()
@@ -394,4 +567,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Shutdown requested")
-

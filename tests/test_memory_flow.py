@@ -4,7 +4,6 @@ import sys
 sys.path.append('.')
 import asyncio
 
-from scanners.experimental.ai_discovery_scanner import AIDiscoveryScanner
 from scanners.experimental.dexscreener_ultra_scanner import \
     DexScreenerUltraScanner
 from utils.memory import MemoryManager

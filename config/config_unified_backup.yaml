@@ -1,0 +1,913 @@
+strategies:
+  enabled:
+
+  # Strategy weighting - ensures fair competition between strategies
+  # Weights are applied when selecting the best strategy for an opportunity
+  # Default weight is 1.0 (equal weighting)
+  # Lower weights reduce a strategy's influence, higher weights increase it
+  weights:
+
+  configs:
+
+    momentum:
+      enabled: true
+      lookback: 60
+      threshold: 0.7
+      min_volume_24h: 100000
+      min_liquidity: 50000
+      min_market_cap: 1000000
+      min_price_change: 0.02
+      max_price_change: 0.15
+      rsi_overbought: 70
+      rsi_oversold: 30
+      require_momentum_alignment: true
+      min_confidence: 0.35
+      base_position_size: 0.002
+      max_position_size: 0.01
+
+    mean_reversion:
+      enabled: true
+      lookback: 120
+      zscore: 2.0
+      min_volume_24h: 100000
+      min_liquidity: 50000
+      min_market_cap: 1000000
+      std_dev_threshold: 2.0
+      extreme_threshold: 3.0
+      min_confidence: 0.35
+      max_confidence: 0.90
+      stop_loss: 0.05
+      take_profit: 0.10
+      risk_reward_ratio: 2.0
+      max_half_life: 50
+      bollinger_periods: 20
+      bollinger_std: 2.0
+      volatility_lookback: 14
+
+    breakout:
+      enabled: true
+      min_volume_24h: 200000
+      min_liquidity: 100000
+      breakout_threshold: 0.02
+      confirmation_periods: 3
+      false_breakout_protection: true
+      min_confidence: 0.35
+      max_position_size: 0.05
+      volume_confirmation_multiplier: 1.5
+      price_confirmation_threshold: 0.01
+      multi_timeframe: true
+      volume_spike_required: true
+
+    volatility_breakout:
+      enabled: true
+      min_volume_24h: 150000
+      min_liquidity: 75000
+      squeeze_threshold: 0.01
+      expansion_factor: 2.0
+      min_confidence: 0.35
+      max_position_size: 0.04
+      bollinger_period: 20
+      bollinger_std: 2.0
+      volume_spike_threshold: 2.0
+      squeeze_duration_min: 20
+      expansion_confirmation: true
+
+    aggressive:
+      enabled: true
+      max_position_size: 0.05
+      max_drawdown: 0.15
+      leverage: 2.0
+      min_confidence: 0.35
+      high_volatility_threshold: 0.3
+      risk_multiplier: 1.5
+      profit_target_multiplier: 2.0
+      stop_loss_tight: 0.03
+      momentum_threshold: 0.05
+      volume_requirement: 50000
+
+    risk_caps:
+      enabled: true
+      max_position_size: 0.05
+      max_drawdown: 0.1
+      var_limit: 0.02
+      correlation_limit: 0.7
+      portfolio_heat_limit: 0.8
+      max_leverage: 3.0
+      var_confidence: 0.95
+      rebalance_threshold: 0.1
+      position_concentration_limit: 0.2
+      sector_exposure_limit: 0.3
+      min_confidence: 0.35
+
+    safe:
+      enabled: true
+      kelly_criterion: true
+      max_leverage: 3.0
+      risk_free_rate: 0.02
+      min_sharpe_ratio: 1.5
+      max_positions: 10
+      position_sizing_method: "kelly"
+      risk_adjusted_returns: true
+      portfolio_optimization: true
+      rebalance_frequency: "daily"
+      max_sector_exposure: 0.2
+      min_confidence: 0.35
+
+    smart_money:
+      enabled: true
+      min_wallet_value: 100000
+      min_transaction_count: 10
+      whale_threshold: 1000000
+      follow_ratio: 0.3
+      min_confidence: 0.35
+      lookback_window: 30
+      wallet_analysis_depth: 100
+      transaction_size_threshold: 50000
+      profit_taking_ratio: 2.0
+      stop_loss_ratio: 0.5
+
+# Scanner Configuration
+scanners:
+  dex_screener:
+
+  mempool_scanner:
+
+  onchain_scanner_ultra:
+
+  token_analyzer:
+
+  settings:
+
+# Network configuration (minimal for paper/simulation mode)
+networks:
+  ethereum:
+      uniswap_v3: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+      camelot: ''
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/eth
+      - https://ethereum.publicnode.com
+      - https://mainnet.infura.io/v3/YOUR_INFURA_KEY
+      - https://ethereum-mainnet.gateway.tatum.io/YOUR_TATUM_KEY
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      goerli:
+        chain_id: 5
+        rpc: https://goerli.infura.io/v3/YOUR_INFURA_KEY
+        explorer: https://goerli.etherscan.io
+        native_token: ETH
+        wrapped_native: '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
+        block_time: 13
+        enabled: true
+        routers:
+          uniswap_v3: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
+        fallback_rpcs:
+          - https://rpc.ankr.com/eth_goerli
+          - https://ethereum-goerli.gateway.tatum.io/YOUR_TATUM_KEY
+
+  arbitrum:
+      uniswap_v3: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+      camelot: '0xc873fEcbd354f5A56E0047A74F339B5FA5B0aA92'
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://1rpc.io/arb
+      - https://arbitrum.llamarpc.com
+      - https://arb1.arbitrum.io/rpc
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://arb-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      arbitrum_sepolia:
+        chain_id: 421614
+        rpc: https://arb-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+        explorer: https://sepolia.arbiscan.io
+        native_token: ETH
+        wrapped_native: '0x4314a73F5D6f4D59E8b5438F0eC589eF8E6A4C5c'
+        block_time: 0.25
+        enabled: true
+        routers:
+          uniswap_v3: '0xE592427A0AEce92De3Edee1F18E0157C05861564'
+        fallback_rpcs:
+          - https://sepolia-rollup.arbitrum.io/rpc
+          - https://rpc.ankr.com/arbitrum_sepolia
+
+  bsc:
+      pancakeswap_v2: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+      pancakeswap_v3: '0x13f4EA83D0bd40E75C8222255bc855a974568Dd4'
+      apeswap: '0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFfF3A'
+    router_v2: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+    factory_v2: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73'
+    router: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
+    fallback_rpcs:
+      - https://bsc.publicnode.com
+      - https://rpc.ankr.com/bsc
+      - https://bsc-dataseed.binance.org
+      - https://bsc-mainnet.gateway.tatum.io/YOUR_TATUM_KEY
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://bsc-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations: []
+    testnets:
+      bsc_testnet:
+        chain_id: 97
+        rpc: https://data-seed-prebsc-1-s1.binance.org:8545
+        explorer: https://testnet.bscscan.com
+        native_token: BNB
+        wrapped_native: '0xae13d989dac2f0debff460ac112a837c89baa7cd'
+        block_time: 3
+        enabled: true
+        routers:
+          pancakeswap_v2: '0xD99D1c33F9fC3444f8101754aBC46c52416550D1'
+        fallback_rpcs:
+          - https://bsc-testnet.llamarpc.com
+          - https://data-seed-prebsc-1-s1.binance.org:8545
+
+  polygon:
+      quickswap: '0xf5b509bB0909a69B1c207E495f687a596C168E12'
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+      uniswap_v2: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+    router_v2: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+    factory_v2: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32'
+    router: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+    fallback_rpcs:
+      - https://polygon.llamarpc.com
+      - https://rpc.ankr.com/polygon
+      - https://polygon-rpc.com
+      - https://polygon-mainnet.gateway.tatum.io/YOUR_TATUM_KEY
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://polygon-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      mumbai:
+        chain_id: 80001
+        rpc: https://rpc-mumbai.maticvigil.com
+        explorer: https://mumbai.polygonscan.com
+        native_token: MATIC
+        wrapped_native: '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889'
+        block_time: 2
+        enabled: true
+        routers:
+          quickswap: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+        fallback_rpcs:
+          - https://rpc-mumbai.llamarpc.com
+
+  optimism:
+      uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+      sushiswap: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    router_v2: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    factory_v2: '0xC35DADB65012eC5796536bD9864eD8773aBc74C4'
+    router: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    fallback_rpcs:
+      - https://1rpc.io/op
+      - https://opt-mainnet.public.blastapi.io
+      - https://rpc.ankr.com/optimism
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://opt-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      optimism_goerli:
+        chain_id: 420
+        rpc: https://opt-goerli.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+        explorer: https://goerli-optimism.etherscan.io
+        native_token: ETH
+        wrapped_native: '0x4200000000000000000000000000000000000006'
+        block_time: 1
+        enabled: true
+        routers:
+          uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://goerli.optimism.io
+          - https://rpc.ankr.com/optimism_testnet
+
+  base:
+      uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://base.publicnode.com
+      - https://rpc.ankr.com/base
+      - https://1rpc.io/base
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://base-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      base_goerli:
+        chain_id: 84531
+        rpc: https://goerli.base.org
+        explorer: https://goerli.basescan.org
+        native_token: ETH
+        wrapped_native: '0x4200000000000000000000000000000000000006'
+        block_time: 2
+        enabled: true
+        routers:
+          uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://goerli.base.org
+
+  linea:
+      uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/linea
+      - https://linea.publicnode.com
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: false
+      supports_websocket: true
+      recommended_rpcs:
+        - https://linea-mainnet.infura.io/v3/YOUR_INFURA_KEY
+      public_rpc_limitations:
+        - mempool_disabled
+    testnets:
+      linea_goerli:
+        chain_id: 59140
+        rpc: https://linea-goerli.infura.io/v3/YOUR_INFURA_KEY
+        explorer: https://goerli.lineascan.build
+        native_token: ETH
+        wrapped_native: '0x0000000000000000000000000000000000000000'
+        block_time: 2
+        enabled: true
+        routers:
+          uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://rpc.ankr.com/linea_testnet
+
+  fantom:
+      spookyswap: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+      sushiswap: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    router_v2: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    factory_v2: ''
+    router: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+    fallback_rpcs:
+      - https://rpc.ankr.com/fantom
+      - https://fantom.publicnode.com
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://rpc.ftm.tools
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      fantom_testnet:
+        chain_id: 4002
+        rpc: https://rpc.ankr.com/fantom_testnet
+        explorer: https://testnet.ftmscan.com
+        native_token: FTM
+        wrapped_native: '0x2e2c02f04B60c813D97560Dc98eFB3c16535A88c'
+        block_time: 1
+        enabled: true
+        routers:
+          spookyswap: '0xF491e7B69E4244ad4002BC14e878a34207E38c29'
+        fallback_rpcs:
+          - https://rpc.ankr.com/fantom_testnet
+
+  gnosis:
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/gnosis
+      - https://gnosis.publicnode.com
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://rpc.gnosischain.com
+      public_rpc_limitations: []
+    testnets:
+      chiado:
+        chain_id: 10200
+        rpc: https://rpc.chiadochain.net
+        explorer: https://blockscout.com/gnosis/chiado
+        native_token: xDAI
+        wrapped_native: '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1'
+        block_time: 5
+        enabled: true
+        routers:
+          sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+        fallback_rpcs:
+          - https://rpc.ankr.com/gnosis_testnet
+
+  avalanche:
+      pangolin: '0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106'
+      traderjoe: '0x60aE616a2155Ee3d9A68541Ba4544862310933d4'
+    router_v2: '0x60aE616a2155Ee3d9A68541Ba4544862310933d4'
+    factory_v2: ''
+    router: '0x60aE616a2155Ee3d9A68541Ba4544862310933d4'
+    fallback_rpcs:
+      - https://rpc.ankr.com/avalanche
+      - https://avax.publicnode.com
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://api.avax.network/ext/bc/C/rpc
+      public_rpc_limitations:
+        - filters_disabled
+        - mempool_disabled
+    testnets:
+      fuji:
+        chain_id: 43113
+        rpc: https://api.avax-test.network/ext/bc/C/rpc
+        explorer: https://testnet.snowtrace.io
+        native_token: AVAX
+        wrapped_native: '0xd00ae08403B9bbb9124bB305C09058E32C39A48c'
+        block_time: 2
+        enabled: true
+        routers:
+          pangolin: '0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106'
+        fallback_rpcs:
+          - https://rpc.ankr.com/avalanche_fuji
+
+  celo:
+      sushiswap: '0x67C6eD79D3d26bF1C41D25d7e33087a1F2B4B40B'
+    router_v2: '0x67C6eD79D3d26bF1C41D25d7e33087a1F2B4B40B'
+    factory_v2: ''
+    router: '0x67C6eD79D3d26bF1C41D25d7e33087a1F2B4B40B'
+    fallback_rpcs:
+      - https://rpc.ankr.com/celo
+      - https://celo.publicnode.com
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: false
+      supports_websocket: true
+      recommended_rpcs:
+        - https://forno.celo.org
+      public_rpc_limitations:
+        - mempool_disabled
+    testnets:
+      alfajores:
+        chain_id: 44787
+        rpc: https://alfajores-forno.celo-testnet.org
+        explorer: https://alfajores.celoscan.io
+        native_token: CELO
+        wrapped_native: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1'
+        block_time: 5
+        enabled: true
+        routers:
+          sushiswap: '0x67C6eD79D3d26bF1C41D25d7e33087a1F2B4B40B'
+        fallback_rpcs:
+          - https://rpc.ankr.com/celo_alfajores
+
+  aurora:
+      trisolaris: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    router_v2: ''
+    factory_v2: ''
+    router: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    fallback_rpcs:
+      - https://rpc.ankr.com/aurora
+      - https://1rpc.io/aurora
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://mainnet.aurora.dev
+      public_rpc_limitations: []
+    testnets:
+      aurora_testnet:
+        chain_id: 1313161555
+        rpc: https://testnet.aurora.dev
+        explorer: https://testnet.aurorascan.dev
+        native_token: AETH
+        wrapped_native: '0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB'
+        block_time: 1
+        enabled: true
+        routers:
+          trisolaris: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://rpc.ankr.com/aurora_testnet
+
+  evmos:
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: ''
+    factory_v2: ''
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://evmos-evm.publicnode.com
+      - https://rpc.ankr.com/evmos
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://eth.bd.evmos.org:8545
+      public_rpc_limitations: []
+    testnets:
+      evmos_testnet:
+        chain_id: 9000
+        rpc: https://eth.bd.evmos.org:8545
+        explorer: https://evm.evmos.org
+        native_token: EVMOS
+        wrapped_native: '0xD4949664cD82660AaE99bEdc034a0deA8A0bd517'
+        block_time: 5
+        enabled: true
+        routers:
+          sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+        fallback_rpcs:
+          - https://rpc.ankr.com/evmos_testnet
+
+  boba:
+      sushi: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: ''
+    factory_v2: ''
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/boba
+      - https://1rpc.io/boba
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://mainnet.boba.network
+      public_rpc_limitations: []
+    testnets:
+      boba_rinkeby:
+        chain_id: 28
+        rpc: https://rinkeby.boba.network
+        explorer: https://rinkeby.bobascan.com
+        native_token: ETH
+        wrapped_native: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
+        block_time: 5
+        enabled: true
+        routers:
+          sushi: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+        fallback_rpcs:
+          - https://rinkeby.boba.network 
+
+  metis:
+      sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: ''
+    factory_v2: ''
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/metis
+      - https://1rpc.io/metis
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://andromeda.metis.io/?owner=1088
+      public_rpc_limitations: []
+    testnets:
+      metis_goerli:
+        chain_id: 588
+        rpc: https://goerli.metis.io
+        explorer: https://goerli-explorer.metis.io
+        native_token: METIS
+        wrapped_native: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0001'
+        block_time: 2
+        enabled: true
+        routers:
+          sushiswap: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+        fallback_rpcs:
+          - https://rpc.ankr.com/metis_testnet
+
+  zksync:
+      uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+    router_v2: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    factory_v2: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/zksync
+      - https://1rpc.io/zksync
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://mainnet.era.zksync.io
+      public_rpc_limitations: []
+    testnets:
+      zksync_testnet:
+        chain_id: 280
+        rpc: https://testnet.era.zksync.io
+        explorer: https://goerli.explorer.zksync.io
+        native_token: ETH
+        wrapped_native: '0x0000000000000000000000000000000000000000'
+        block_time: 2
+        enabled: true
+        routers:
+          uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://rpc.ankr.com/zksync_testnet
+
+  scroll:
+      uniswap_v3: ''
+    router_v2: ''
+    factory_v2: ''
+    router: ''
+    fallback_rpcs:
+      - https://rpc.ankr.com/scroll
+      - https://1rpc.io/scroll
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://mainnet.scroll.io
+      public_rpc_limitations: []
+    testnets:
+      scroll_testnet:
+        chain_id: 534354
+        rpc: https://testnet.scroll.io
+        explorer: https://testnet.scroll.io/explorer
+        native_token: ETH
+        wrapped_native: '0x4200000000000000000000000000000000000006'
+        block_time: 2
+        enabled: true
+        routers:
+          uniswap_v3: '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+        fallback_rpcs:
+          - https://rpc.ankr.com/scroll_testnet
+
+  moonbeam:
+      sushi: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    router_v2: ''
+    factory_v2: ''
+    router: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+    fallback_rpcs:
+      - https://rpc.ankr.com/moonbeam
+      - https://moonbeam.public.blastapi.io
+    cross_chain_capabilities:
+      supports_filters: true
+      supports_mempool: true
+      supports_websocket: true
+      recommended_rpcs:
+        - https://rpc.api.moonbeam.network
+      public_rpc_limitations: []
+    testnets:
+      moonbase_alpha:
+        chain_id: 1287
+        rpc: https://rpc.api.moonbase.moonbeam.network
+        explorer: https://moonbase.moonscan.io
+        native_token: DEV
+        wrapped_native: '0xF7B098298f7C69fc14610bf71d5e02c60792894c'
+        block_time: 12
+        enabled: true
+        routers:
+          sushi: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+        fallback_rpcs:
+          - https://rpc.ankr.com/moonbeam_testnet
+
+  moonriver:
+  routers:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://rpc.moonriver.moonbeam.network
+    public_rpc_limitations: []
+  testnets:
+      chain_id: 1281
+      rpc: https://rpc.testnet.moonbeam.network
+      explorer: https://moonbeam-testnet.moonscan.io
+      native_token: MOVR
+      wrapped_native: '0xF7B098298f7C69fc14610bf71d5e02c60792894c'
+      block_time: 12
+      enabled: true
+      routers:
+        sushi: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+      fallback_rpcs:
+        - https://rpc.ankr.com/moonriver_testnet
+
+  klaytn:
+  routers:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://public-node-api.klaytnapi.com/v1/cypress
+    public_rpc_limitations: []
+  testnets:
+      chain_id: 1001
+      rpc: https://public-node-api.klaytnapi.com/v1/baobab
+      explorer: https://baobab.scope.klaytn.com
+      native_token: KLAY
+      wrapped_native: '0xC8fF201C43c64e30eF6F632F0F5b3a2f004Ab6c1'
+      block_time: 1
+      enabled: true
+      routers:
+        klayswap: '0x2f6b990a4bB4EC47E64c5c2E6b0F29c6B308bDd3'
+      fallback_rpcs:
+        - https://1rpc.io/klaytn_testnet
+
+  polygon_zkevm:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://zkevm-rpc.com
+    public_rpc_limitations: []
+  testnets: {}
+
+  astar:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://rpc.astar.network:8545
+    public_rpc_limitations: []
+  testnets: {}
+
+  iotex:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://rpc.ankr.com/iotex
+    public_rpc_limitations: []
+  testnets: {}
+
+  kcc:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://rpc-mainnet.kcc.network
+    public_rpc_limitations: []
+  testnets: {}
+
+  theta:
+  cross_chain_capabilities:
+      - https://eth-rpc-api.thetatoken.org/rpc
+    public_rpc_limitations:
+      - limited_evm_compat
+  testnets: {}
+
+  okc:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://exchainrpc.okex.org
+    public_rpc_limitations: []
+  testnets: {}
+
+  heco:
+  cross_chain_capabilities:
+      - deprecated_chain
+  testnets: {}
+
+  oasis_emerald:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://emerald.oasis.dev
+    public_rpc_limitations: []
+  testnets: {}
+
+  telos:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://mainnet.telos.net/evm
+    public_rpc_limitations: []
+  testnets: {}
+
+  syscoin:
+  cross_chain_capabilities:
+      - https://rpc.syscoin.org
+    public_rpc_limitations: []
+  testnets: {}
+
+  velas:
+  cross_chain_capabilities:
+      - low_liquidity
+  testnets: {}
+
+  thundercore:
+  cross_chain_capabilities:
+      - https://mainnet-rpc.thundercore.com
+    public_rpc_limitations: []
+  testnets: {}
+
+  palm:
+  cross_chain_capabilities:
+      - nft_focused
+  testnets: {}
+
+  manta:
+  cross_chain_capabilities:
+      - https://pacific-rpc.manta.network/http
+    public_rpc_limitations: []
+  testnets: {}
+
+  opbnb:
+  fallback_rpcs:
+  cross_chain_capabilities:
+      - https://opbnb-mainnet-rpc.bnbchain.org
+    public_rpc_limitations: []
+  testnets: {}
+
+  solana:
+  cross_chain_capabilities:
+      - https://api.mainnet-beta.solana.com
+    public_rpc_limitations:
+      - non_evm
+
+  aptos_mainnet:
+  cross_chain_capabilities:
+      - https://fullnode.mainnet.aptoslabs.com/v1
+    public_rpc_limitations:
+      - move_vm
+
+  bitcoin:
+  cross_chain_capabilities:
+      - utxo_model
+
+# Database configuration (paper-mode safe local path)
+database:
+  path: "data/trades.db"
+
+# AI Controller Configuration
+ai:
+  enabled: true
+  max_queue_size: 1000
+  decision_timeout: 30.0
+  opportunity_timeout: 60.0
+  
+  # Neural Brain Configuration
+  signal_thresholds:
+  
+  strategy_weights:
+  
+  # Background task configuration
+  background_tasks:
+  
+  # Market regime detection
+  regime_detection:
+
+# Trading Configuration
+entry:
+  enabled: true
+  min_liquidity: 10000.0
+  min_volume: 5000.0
+  max_history: 1000
+
+trading:
+  enabled: true
+  mode: "paper"
+  max_position_size: 0.1
+  max_total_exposure: 0.5
+  stop_loss_global: 0.1
+  max_drawdown: 0.2
+
+  # Paper trading / auto-switch controls (consumed by TradingModeManager)
+  auto_switch: true
+  simulation_days: 30
+  min_paper_trades: 20
+  min_success_rate: 0.60
+  require_paper_promotion: true
+  paper_trading:
+
+  network_portfolios:
+
+  risk_management:
+
+  position_sizing:
+
+  execution:
+
+  trading_pairs:
+
+  intervals:
+

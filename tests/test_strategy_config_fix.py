@@ -21,48 +21,35 @@ def test_strategy_config_fix():
             config = yaml.safe_load(f)
     except Exception as e:
         print(f"❌ Failed to load config: {e}")
-        return False
+        assert False, f"Failed to load config: {e}"
     
     strategies_config = config.get('strategies', {})
     
-    # Test all the strategy lookup methods
-    test_cases = [
-        # (strategy_class_name, strategy_name, STRATEGY_NAME)
-        ("EliteMomentumStrategy", "momentum", "momentum_strategy"),
-        ("MeanReversionStrategy", "mean_reversion", "mean_reversion_strategy"),
-        ("EliteBreakoutStrategy", "breakout", "elite_breakout_strategy"),
-        ("VolatilityBreakoutStrategy", "volatility_breakout", "volatility_breakout_strategy"),
-        ("EliteAggressiveStrategy", "aggressive", "aggressive_strategy"),
-        ("RiskCapsStrategy", "risk_caps", "risk_caps_strategy"),
-        ("ProfessionalEliteStrategy", "professional_elite", "safe_strategy"),
-        ("SmartMoneyUltraStrategy", "smart_money", "smart_money_ultra_elite"),
+    # Test the ACTUAL config keys that strategies use
+    expected_strategies = [
+        "elite_momentum",
+        "mean_reversion",
+        "elite_breakout",
+        "volatility_breakout",
+        "elite_aggressive",
+        "risk_caps",
+        "professional_elite",
+        "smart_money_ultra"
     ]
     
     all_found = True
-    for class_name, name1, name2 in test_cases:
-        # Test class name lookup
-        class_found = class_name in strategies_config
-        status1 = "✅" if class_found else "❌"
+    for strategy_key in expected_strategies:
+        found = strategy_key in strategies_config
+        status = "✅" if found else "❌"
+        print(f"   {status} {strategy_key}")
         
-        # Test name lookup
-        name1_found = name1 in strategies_config
-        status2 = "✅" if name1_found else "❌"
-        
-        # Test STRATEGY_NAME lookup
-        name2_found = name2 in strategies_config
-        status3 = "✅" if name2_found else "❌"
-        
-        print(f"   {status1} {class_name}")
-        print(f"   {status2} {name1}")
-        print(f"   {status3} {name2}")
-        
-        if not (class_found or name1_found or name2_found):
+        if not found:
             all_found = False
-            print(f"      ❌ {class_name} - Missing config")
+            print(f"      ❌ {strategy_key} - Missing config")
         else:
-            print(f"      ✅ {class_name} - Config found")
+            print(f"      ✅ {strategy_key} - Config found")
     
-    return all_found
+    assert all_found, f"Some strategies are missing config. Found {len([k for k in expected_strategies if k in strategies_config])}/{len(expected_strategies)}"
 
 def test_strategy_instantiation():
     """Test that strategies can be instantiated with their configs."""
@@ -70,7 +57,7 @@ def test_strategy_instantiation():
     
     try:
         from strategies.features.momentum import EliteMomentumStrategy
-        from strategies.features.mean_reversion import MeanReversionStrategy
+        from strategies.features.mean_reversion import MeanReversionStrategyV2
         
         config_path = Path("/home/damien/ecosystem/config/config_unified.yaml")
         with open(config_path, 'r') as f:
@@ -79,26 +66,35 @@ def test_strategy_instantiation():
         strategies_config = config.get('strategies', {})
         
         # Test EliteMomentumStrategy
+        # Strategies expect (strategy_config, global_config) not just config dict
         try:
-            momentum_strategy = EliteMomentumStrategy(config=strategies_config)
+            strategy_config = strategies_config.get('elite_momentum', {})
+            momentum_strategy = EliteMomentumStrategy(
+                strategy_config=strategy_config,
+                global_config=config
+            )
             print(f"   ✅ EliteMomentumStrategy: Instantiated successfully")
         except Exception as e:
             print(f"   ❌ EliteMomentumStrategy: {e}")
-            return False
+            assert False, f"EliteMomentumStrategy instantiation failed: {e}"
         
-        # Test MeanReversionStrategy
+        # Test MeanReversionStrategyV2
         try:
-            mean_reversion_strategy = MeanReversionStrategy(config=strategies_config)
-            print(f"   ✅ MeanReversionStrategy: Instantiated successfully")
+            strategy_config = strategies_config.get('mean_reversion', {})
+            mean_reversion_strategy = MeanReversionStrategyV2(
+                strategy_config=strategy_config,
+                global_config=config
+            )
+            print(f"   ✅ MeanReversionStrategyV2: Instantiated successfully")
         except Exception as e:
-            print(f"   ❌ MeanReversionStrategy: {e}")
-            return False
+            print(f"   ❌ MeanReversionStrategyV2: {e}")
+            assert False, f"MeanReversionStrategyV2 instantiation failed: {e}"
         
-        return True
+
         
     except Exception as e:
         print(f"❌ Strategy instantiation test failed: {e}")
-        return False
+        assert False, f"Strategy instantiation test failed: {e}"
 
 def main():
     """Main test function."""

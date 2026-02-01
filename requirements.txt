@@ -1,0 +1,36 @@
+# Core async / networking
+aiofiles
+aiohttp
+cachetools
+click
+requests
+
+# Environment & config
+python-dotenv
+jsonschema
+
+# Ethereum / DeFi
+eth-account
+eth-typing
+flashbots
+
+# Observability / system
+prometheus-client
+psutil
+redis
+
+# Data / analysis
+numpy
+pandas
+matplotlib
+joblib
+
+# Validation
+pydantic
+
+# Testing
+pytest
+
+# Optional AI integration
+anthropic
+

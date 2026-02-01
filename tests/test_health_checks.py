@@ -4,7 +4,7 @@ import pytest
 
 from networks.universal_network_manager import UniversalNetworkManager
 from scanners.scan_director import ScanDirector
-from utils.health_check import HealthStatus
+from core.health_check import HealthStatus
 
 
 class DummyEth:

@@ -437,7 +437,7 @@ class StrategyManager:
 
         except TimeoutError:
             exec_time_ms = (time.time() - start) * 1000
-            self._handle_strategy_error(strategy_id, TimeoutError("Evaluation timed out"))
+            self.handle_strategy_error(strategy_id, TimeoutError("Evaluation timed out"))
             return EvaluationResult(
                 strategy_id=strategy_id,
                 error="timeout",
@@ -447,7 +447,7 @@ class StrategyManager:
 
         except Exception as e:
             exec_time_ms = (time.time() - start) * 1000
-            self._handle_strategy_error(strategy_id, e)
+            self.handle_strategy_error(strategy_id, e)
             return EvaluationResult(
                 strategy_id=strategy_id,
                 error=str(e),

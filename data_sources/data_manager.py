@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from utils.health_check import HealthStatus, standard_health_check
+from core.health_check import HealthStatus, standard_health_check
 
 logger = logging.getLogger(__name__)
 
@@ -393,23 +393,23 @@ class DataManager:
              decimals: Token decimals (optional)
         
         Returns:
-             str: Token address (used as ID)
+             str: Token ID (database integer ID, not address)
         """
         # Try to get existing token
         self.cursor.execute(
-            "SELECT address FROM tokens WHERE chain = ? AND LOWER(address) = LOWER(?)",
+            "SELECT id FROM tokens WHERE chain = ? AND LOWER(address) = LOWER(?)",
             (chain, address)
         )
         token = self.cursor.fetchone()
     
         if token:
-            token_id = token[0]  # Use address as ID
+            token_id = token[0]  # Get integer ID
             # Update token info if needed
             self.cursor.execute(
                 """
                 UPDATE tokens 
                 SET symbol = ?, name = ?, decimals = ?, last_updated = CURRENT_TIMESTAMP
-                WHERE address = ?
+                WHERE id = ?
                 """,
                 (symbol, name, decimals, token_id)
             )
@@ -422,10 +422,10 @@ class DataManager:
                 """,
                 (chain, address, symbol, name, decimals)
             )
-            token_id = address  # Use address as ID
+            token_id = self.cursor.lastrowid  # Get integer ID
         
         self.conn.commit()
-        return token_id
+        return str(token_id)
 
     def get_token_by_address(self, chain: str, address: str) -> dict:
         """
@@ -454,7 +454,7 @@ class DataManager:
         Save a snapshot of token data.
     
         Args:
-            token_id: Token ID from the tokens table
+            token_id: Token ID (integer, from get_or_create_token)
             **kwargs: Token data fields to save
         
         Returns:
@@ -473,27 +473,20 @@ class DataManager:
             return None
         
         try:
-            # Update the last_updated timestamp in the tokens table
-            self.cursor.execute(
-                """
-                UPDATE tokens 
-                SET last_updated = CURRENT_TIMESTAMP
-                WHERE address = ?
-                """,
-                (token_id,)
-            )
-        
+            # Convert token_id to integer
+            token_id_int = int(token_id)
+            
             # Add current timestamp with millisecond precision to ensure uniqueness
             timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         
             # Prepare the data for insertion
             columns = ['token_id', 'timestamp'] + list(data.keys())
             placeholders = ['?'] * len(columns)
-            values = [token_id, timestamp] + [data[k] for k in columns[2:]]
+            values = [token_id_int, timestamp] + [data[k] for k in columns[2:]]
         
             # First, try to update existing record for this timestamp if it exists
             set_clause = ', '.join([f"{col} = ?" for col in columns[2:]])
-            update_values = [data[k] for k in columns[2:]] + [token_id, timestamp]
+            update_values = [data[k] for k in columns[2:]] + [token_id_int, timestamp]
         
             self.cursor.execute(
                 f"""
@@ -547,6 +540,66 @@ class DataManager:
     
         columns = [d[0] for d in self.cursor.description]
         return [dict(zip(columns, row)) for row in rows]
+
+    def get_price_history(self, token_address: str, chain: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get historical price and volume data for a token.
+        
+        Fetches from token_snapshots table which is continuously updated by scanners
+        and other data sources with price, volume, liquidity, etc.
+        
+        Args:
+            token_address: Token contract address
+            chain: Blockchain name
+            limit: Maximum number of historical points to return
+            
+        Returns:
+            List of snapshots with price, volume_24h, liquidity, timestamp, etc.
+            Ordered from oldest to newest (ascending by timestamp).
+        """
+        try:
+            # Get token ID from address and chain
+            self.cursor.execute(
+                """
+                SELECT id FROM tokens 
+                WHERE address = ? AND chain = ?
+                """,
+                (token_address, chain)
+            )
+            result = self.cursor.fetchone()
+            
+            if not result:
+                logger.debug(f"No token found for {token_address} on {chain}")
+                return []
+            
+            token_id = result[0]
+            
+            # Fetch historical snapshots, ordered oldest to newest
+            self.cursor.execute(
+                """
+                SELECT * FROM token_snapshots 
+                WHERE token_id = ? 
+                ORDER BY timestamp ASC
+                LIMIT ?
+                """,
+                (token_id, limit)
+            )
+            
+            rows = self.cursor.fetchall()
+            
+            if not rows:
+                logger.debug(f"No historical data found for token {token_id}")
+                return []
+            
+            columns = [d[0] for d in self.cursor.description]
+            snapshots = [dict(zip(columns, row)) for row in rows]
+            
+            logger.debug(f"Retrieved {len(snapshots)} historical snapshots for {token_address} on {chain}")
+            return snapshots
+        
+        except Exception as e:
+            logger.error(f"Error fetching price history for {token_address} on {chain}: {e}")
+            return []
 
     @standard_health_check("Data Manager")
     async def health_check(self) -> HealthStatus:

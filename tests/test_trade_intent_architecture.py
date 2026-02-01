@@ -8,9 +8,8 @@ sys.path.insert(0, '/home/damien/ecosystem')
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from trading.models import MarketData, TokenInfo, TradeOpportunity
-from trading.trade_engine import DecisionOutcome, StrategyDecision
-from trading.trade_optimizer import (ExecutionPlan, TradeIntent,
+from trading.models import MarketData, TokenInfo, TradeOpportunity, DecisionOutcome, StrategyDecision
+from trading.trade_intent.trade_optimizer import (ExecutionPlan, TradeIntent,
                                      TradeIntentCompiler, TradeSide)
 
 # Test the complete Trade Intent architecture

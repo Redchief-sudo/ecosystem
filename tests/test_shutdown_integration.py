@@ -3,13 +3,13 @@ from decimal import Decimal
 
 import pytest
 
-from ai.elite_ai_controller import EliteAsyncAIController
-from utils.task_manager import task_manager
+from ai.elite_async_ai_controller import EliteAsyncAIController
+from core.task_manager import task_manager
 
 
 @pytest.mark.asyncio
 async def test_shutdown_cleans_up_tasks():
-    controller = EliteAsyncAIController(config={'health_check_interval': 0.01}, total_capital=Decimal('1000'))
+    controller = EliteAsyncAIController(config={'health_check_interval': 0.01})
     await controller.async_initialize()
 
     # Ensure TaskManager has tasks (background monitors registered)
@@ -27,8 +27,8 @@ async def test_shutdown_cleans_up_tasks():
 
     # All tasks started by controller should be either done or cancelled
     for tid, t in task_manager.tasks.items():
-        assert t.done(), f"Task {tid} should be done after shutdown"
+        assert t.task.done(), f"Task {tid} should be done after shutdown"
 
     # Ensure any lingering tasks are cleared from the manager
-    task_manager.cancel_all()
+    await task_manager._cancel_all_tasks()
     assert task_manager.tasks == {}, "TaskManager should be empty after cancel_all()"

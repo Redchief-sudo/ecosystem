@@ -89,10 +89,10 @@ class TaskManager(BaseManager):
             
         tasks = self.get_item("tasks") or {}
         if task_id in tasks:
-            existing_task = tasks[task_id].task
-            if existing_task and not existing_task.done():
+            task_info = tasks.get(task_id)
+            if task_info and task_info.task and not task_info.task.done():
                 self.logger.debug(f"Task {task_id} already exists and is running")
-                return existing_task
+                return task_info.task
             # Task exists but is done, allow recreation
             self.logger.debug(f"Task {task_id} exists but is done, recreating")
             
@@ -108,9 +108,8 @@ class TaskManager(BaseManager):
         )
         
         tasks[task_id] = task_info
-        # Ensure tasks dict is registered
-        if not self.get_item("tasks"):
-            self.register_item("tasks", tasks)
+        # Always update the tasks dict when creating a task
+        self.register_item("tasks", tasks)
         self._metrics.tasks_created += 1
         
         self.logger.debug(f"Created task: {task_id} ({task_type})")
@@ -119,7 +118,8 @@ class TaskManager(BaseManager):
     async def cancel_task(self, task_id: str) -> bool:
         """Cancel a task."""
         async with self._lock:
-            task_info = self.get_item("tasks") or {}.get(task_id)
+            tasks = self.get_item("tasks") or {}
+            task_info = tasks.get(task_id)
             if not task_info:
                 return False
             
@@ -127,6 +127,8 @@ class TaskManager(BaseManager):
                 task_info.task.cancel()
                 task_info.status = TaskStatus.CANCELLED
                 self._metrics.tasks_cancelled += 1
+                # Update task state in registry
+                self.register_item("tasks", tasks)
                 return True
         
         return False
@@ -209,7 +211,12 @@ class TaskManager(BaseManager):
         """Cancel all tasks (synchronous wrapper)."""
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            loop.create_task(self._cancel_all_tasks())
+            # Create a task but don't await it; instead return a coroutine for the caller to await
+            # Since we're in sync context but need sync behavior, use run_coroutine_threadsafe
+            asyncio.create_task(self._cancel_all_tasks())
+            # Give it a moment to execute
+            import time
+            time.sleep(0.1)
         else:
             asyncio.run(self._cancel_all_tasks())
     
@@ -228,11 +235,16 @@ class TaskManager(BaseManager):
                 task_info.task.cancel()
                 task_info.status = TaskStatus.CANCELLED
                 self._metrics.tasks_cancelled += 1
+                try:
+                    await task_info.task
+                except asyncio.CancelledError:
+                    pass
             except Exception as e:
                 self.logger.error(f"Error cancelling task {task_info.task_id}: {e}")
         
-        # Clear all tasks
-        self.register_item("tasks", {})
+        # Clear all tasks from registry after cancellation
+        async with self._lock:
+            self.register_item("tasks", {})
     
     def get_metrics(self) -> Dict[str, Any]:
         """Get task metrics."""
@@ -245,7 +257,8 @@ class TaskManager(BaseManager):
         # Cancel all running tasks
         tasks_to_cancel = []
         async with self._lock:
-            for task_info in (self.get_item("tasks") or {}).values():
+            tasks = self.get_item("tasks") or {}
+            for task_info in tasks.values():
                 if task_info.task and not task_info.task.done():
                     tasks_to_cancel.append(task_info)
         
@@ -253,11 +266,27 @@ class TaskManager(BaseManager):
         for task_info in tasks_to_cancel:
             try:
                 task_info.task.cancel()
-                await task_info.task
-            except asyncio.CancelledError:
-                pass
+                task_info.status = TaskStatus.CANCELLED
+                self._metrics.tasks_cancelled += 1
+                try:
+                    await task_info.task
+                except asyncio.CancelledError:
+                    pass
             except Exception as e:
                 self.logger.error(f"Error cancelling task {task_info.task_id}: {e}")
+        
+        # Update final task states but keep the history
+        async with self._lock:
+            tasks = self.get_item("tasks") or {}
+            for task_id, task_info in tasks.items():
+                if task_info.task and task_info.task.done():
+                    if task_info.task.cancelled():
+                        task_info.status = TaskStatus.CANCELLED
+                    elif task_info.task.exception():
+                        task_info.status = TaskStatus.FAILED
+                    else:
+                        task_info.status = TaskStatus.COMPLETED
+            self.register_item("tasks", tasks)
 
     async def _do_initialize(self) -> bool:
         """Initialize task manager."""
