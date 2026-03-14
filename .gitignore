@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtualenv
+venv/
+.venv/
+.venv-test/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+
+# Data
+data/
+database/
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# Backups
+.backups/
+.todo/
+
+# System
+.DS_Store
+
+# Environment files
+.env
+.env.*
+.env.save
+.env.save.1
+
+# Sensitive data
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+secrets.yaml
+secrets.yml
+config/secrets.yaml
+config/secrets.yml
+
+# Database files (may contain sensitive data)
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Large binary files
+*.iso
+*.zip
+*.deb
+*.tar.gz
+
+# Lock files
+.~lock.*
+*.lock
+
+# Temporary files
+*.tmp
+*.temp
+*~

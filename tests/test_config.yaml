@@ -1,0 +1,174 @@
+# Test configuration for scanner testing
+log_level: "DEBUG"  # Enable debug logging
+
+networks:
+  enabled:
+    - ethereum
+    - bsc
+    - polygon
+  
+  # Test with fewer networks first for debugging
+  test_networks: true  # Set to false to enable all networks
+  
+  # RPC endpoints with fallbacks
+  rpc_urls:
+    ethereum: ${ETHEREUM_RPC_URL:-https://eth.llamarpc.com}
+    bsc: ${BSC_RPC_URL:-https://bsc-dataseed.binance.org/}
+    polygon: ${POLYGON_RPC_URL:-https://polygon-rpc.com/}
+
+scanners:
+  # General scanner settings
+  scan_interval: 60  # 1 minute for testing
+  max_concurrent_scans: 1  # Reduce concurrency for debugging
+  
+  # Debug settings
+  debug: true
+  log_http_requests: true
+  log_http_responses: true
+  
+  # Scanner timeouts (in seconds)
+  timeouts:
+    rpc: 30
+    http: 30
+    scan: 300  # 5 minutes max per scan
+    
+  # Retry settings
+  retry:
+    max_attempts: 3
+    backoff_factor: 1.5
+    
+  # RPC endpoints - using public endpoints for testing
+  rpc_urls:
+    ethereum: ${ETHEREUM_RPC_URL:-https://eth.llamarpc.com}
+    bsc: ${BSC_RPC_URL:-https://bsc-dataseed.binance.org/}
+    polygon: ${POLYGON_RPC_URL:-https://polygon-rpc.com/}
+    
+  # Test with a subset of networks first
+  test_mode: true
+  test_networks: ['ethereum', 'bsc', 'polygon']
+  
+  # DexScreener Scanner
+  dex_screener:
+    enabled: true
+    api_key: ""  # Public API doesn't require a key for basic usage
+    base_url: "https://api.dexscreener.com/latest"
+    
+    # Override default configuration
+    config:
+      # Use v2 API for more data points
+      api_version: 'v2'
+      
+      # Standard mode is more lenient than ultra mode
+      mode: 'standard'
+      
+      # Rate limiting
+      rate_limit:
+        max_concurrent: 3
+        min_interval: 0.5  # seconds
+      
+      # Override default filters to be more lenient
+      filters:
+        min_liquidity: 1      # $1 minimum liquidity (very low for testing)
+        min_volume: 1         # $1 minimum volume (very low for testing)
+        min_age_hours: 0      # Include brand new tokens
+      
+      # Ultra mode settings (not used in standard mode)
+      ultra_mode:
+        min_liquidity: 1000   # $1k minimum for ultra mode
+        min_volume: 1000      # $1k minimum for ultra mode
+        max_age: 86400        # 24 hours max age for ultra mode
+    
+    # Scan settings
+    max_tokens_per_scan: 20
+    scan_interval: 60  # seconds
+    
+    # Network settings
+    networks:
+      ethereum:
+        enabled: true
+        factory_address: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"  # Uniswap V2
+        # Network-specific overrides
+        filters:
+          min_liquidity: 1
+          min_volume: 1
+      bsc:
+        enabled: true
+        factory_address: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"  # PancakeSwap
+        filters:
+          min_liquidity: 1
+          min_volume: 1
+      polygon:
+        enabled: true
+        factory_address: "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32"  # QuickSwap
+        filters:
+          min_liquidity: 1
+          min_volume: 1
+    
+    # Debug settings
+    debug: true
+    log_http_requests: true
+    log_http_responses: true
+    log_raw_responses: true
+    log_filtered_tokens: true
+    
+    # Log level for the scanner
+    log_level: "DEBUG"
+  
+  # On-chain Scanner
+  onchain:
+    enabled: true
+    max_blocks_to_scan: 1000
+    max_events_per_scan: 100
+  
+  # Mempool Scanner
+  mempool:
+    enabled: true
+    max_transactions_to_scan: 100
+    min_gas_price: 1  # in gwei
+  
+  # Hybrid Scanner Configuration
+  hybrid:
+    enabled: true
+    min_confidence_score: 0.7
+    max_tokens_per_scan: 50
+    
+    # Scanner weights for combining results
+    scanner_weights:
+      onchain: 0.4
+      dex_screener: 0.3
+      coinmarketcap: 0.2
+      social: 0.1
+    
+    # Data sources to include
+    data_sources:
+      enable_onchain: true
+      enable_dex: true
+      enable_cex: true
+      enable_social: false  # Disable social by default for testing
+    
+    # Performance settings
+    max_concurrent_requests: 5
+    request_timeout: 30
+    
+    # Caching
+    cache_ttl: 300  # 5 minutes
+    
+    # RPC endpoints (inherit from global if not specified)
+    rpc_urls: ${scanners.rpc_urls}
+    
+    # Debug settings
+    debug: true
+    log_level: "DEBUG"
+    
+  # AI Discovery Scanner (if available)
+  ai_discovery:
+    enabled: false
+    model_name: "gpt-4"
+    max_tokens: 1000
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "logs/scanner_test.log"
+  max_size_mb: 100  # Max log file size in MB
+  backup_count: 3    # Number of backup logs to keep
