@@ -31,8 +31,8 @@
       font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(1200px 700px at 8% 6%, rgba(110, 194, 255, 0.25), transparent 62%),
-        radial-gradient(900px 520px at 96% 8%, rgba(176, 205, 236, 0.19), transparent 62%),
+        radial-gradient(1200px 700px at 10% 8%, rgba(96, 176, 255, 0.22), transparent 64%),
+        radial-gradient(900px 520px at 92% 10%, rgba(164, 198, 236, 0.16), transparent 64%),
         radial-gradient(1100px 700px at 50% 100%, rgba(63, 116, 255, 0.17), transparent 70%),
         linear-gradient(150deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
       min-height: 100vh;
@@ -54,7 +54,7 @@
         linear-gradient(rgba(165, 210, 255, 0.08) 1px, transparent 1px),
         linear-gradient(90deg, rgba(165, 210, 255, 0.08) 1px, transparent 1px);
       background-size: 46px 46px;
-      opacity: 0.24;
+      opacity: 0.16;
       mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
       animation: gridShift var(--t-slow) linear infinite;
     }
@@ -70,7 +70,7 @@
 
     @keyframes gridShift { from { transform: translateY(0); } to { transform: translateY(24px); } }
     @keyframes streamShift { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
-    @keyframes pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+    @keyframes pulse { 0%,100% { opacity: 0.22; } 50% { opacity: 1; } }
     @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(320%); } }
     @keyframes shiftX { from { transform: translateX(-6px); } to { transform: translateX(8px); } }
@@ -104,13 +104,14 @@
     }
 
     .bg-neural {
+      filter: blur(0.2px);
       background:
         radial-gradient(circle at 18% 30%, rgba(112, 190, 255, 0.12) 0 2px, transparent 3px),
         radial-gradient(circle at 62% 42%, rgba(138, 206, 255, 0.10) 0 2px, transparent 3px),
         radial-gradient(circle at 78% 68%, rgba(112, 190, 255, 0.10) 0 2px, transparent 3px),
         linear-gradient(122deg, transparent 27%, rgba(112, 170, 255, 0.14) 28%, transparent 29%),
         linear-gradient(38deg, transparent 53%, rgba(112, 170, 255, 0.12) 54%, transparent 55%);
-      opacity: 0.35;
+      opacity: 0.22;
       animation: shiftX calc(var(--t-slow) * 1.2) var(--ease-smooth) infinite alternate;
     }
 
@@ -120,7 +121,7 @@
         radial-gradient(circle at 36% 66%, rgba(126, 206, 255, 0.3) 0 2px, transparent 3px),
         radial-gradient(circle at 74% 28%, rgba(126, 206, 255, 0.35) 0 2px, transparent 3px),
         radial-gradient(circle at 88% 76%, rgba(126, 206, 255, 0.28) 0 2px, transparent 3px);
-      opacity: 0.33;
+      opacity: 0.10;
       animation: particleDrift calc(var(--t-slow) * 1.1) linear infinite alternate;
     }
 
@@ -136,10 +137,10 @@
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.55;
+      opacity: 0.28;
     }
 
-    .env-layer-2 { opacity: 0.38; }
+    .env-layer-2 { opacity: 0.16; }
 
     .bg-fog,
     .bg-hud,
@@ -156,7 +157,7 @@
         radial-gradient(800px 500px at 20% 70%, rgba(113, 178, 255, 0.10), transparent 70%),
         radial-gradient(900px 500px at 80% 25%, rgba(132, 197, 255, 0.08), transparent 72%);
       animation: floatY calc(var(--t-slow) * 1.6) var(--ease-smooth) infinite alternate;
-      opacity: 0.42;
+      opacity: 0.28;
     }
 
     .bg-hud {
@@ -165,7 +166,7 @@
         radial-gradient(circle at 88% 78%, rgba(137, 199, 255, 0.08) 0 140px, transparent 150px),
         radial-gradient(circle at 52% 46%, rgba(137, 199, 255, 0.06) 0 180px, transparent 190px);
       animation: shiftX calc(var(--t-slow) * 1.4) var(--ease-smooth) infinite alternate;
-      opacity: 0.24;
+      opacity: 0.16;
     }
 
     .bg-bloom {
@@ -174,13 +175,13 @@
         radial-gradient(480px 260px at 72% 18%, rgba(110, 189, 255, 0.13), transparent 72%),
         radial-gradient(620px 300px at 50% 70%, rgba(110, 189, 255, 0.08), transparent 75%);
       animation: glowBreath calc(var(--t-slow) * 0.9) var(--ease-smooth) infinite;
-      opacity: 0.32;
+      opacity: 0.22;
     }
 
     .bg-pulse {
       background:
         radial-gradient(circle at 50% 50%, rgba(120, 190, 255, 0.0) 0 120px, rgba(120, 190, 255, 0.10) 150px, rgba(120, 190, 255, 0) 220px);
-      opacity: 0.18;
+      opacity: 0.10;
       animation: ringPulse calc(var(--t-slow) * 1.2) var(--ease-smooth) infinite;
     }
 
@@ -772,7 +773,7 @@
       const ctx1 = c1 ? fit(c1) : null;
       const ctx2 = c2 ? fit(c2) : null;
 
-      const particles = Array.from({ length: 42 }, (_, i) => ({
+      const particles = Array.from({ length: 30 }, (_, i) => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         r: 0.8 + Math.random() * 1.7,
@@ -781,14 +782,14 @@
         a: 0.12 + Math.random() * 0.25
       }));
 
-      const nodes = Array.from({ length: 26 }, () => ({
+      const nodes = Array.from({ length: 18 }, () => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         vx: (Math.random() - 0.5) * 0.14,
         vy: (Math.random() - 0.5) * 0.14
       }));
 
-      const streams = Array.from({ length: 8 }, (_, i) => ({
+      const streams = Array.from({ length: 6 }, (_, i) => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         len: 120 + Math.random() * 160,
