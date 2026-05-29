@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fintech AI Platform</title>
+  <style>
+    :root {
+      --bg: #071428;
+      --bg-soft: #0e203b;
+      --card: rgba(255, 255, 255, 0.08);
+      --border: rgba(173, 216, 255, 0.24);
+      --text: #eaf3ff;
+      --muted: #9db2cc;
+      --accent: #22d3ee;
+      --accent2: #38bdf8;
+      --success: #34d399;
+      --warn: #fbbf24;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Avenir Next", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 10%, #1c3f71 0%, transparent 45%),
+        radial-gradient(circle at 85% 15%, #0f7ca6 0%, transparent 35%),
+        linear-gradient(160deg, var(--bg) 0%, #061121 45%, #040b17 100%);
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: 0 auto;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 26px 0;
+    }
+
+    .logo { font-weight: 700; letter-spacing: 0.4px; }
+
+    .cta {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      color: #002234;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .hero {
+      padding: 38px 0 20px;
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 1.15fr 1fr;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.7rem);
+      line-height: 1.05;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: clamp(1rem, 2.2vw, 1.18rem);
+      max-width: 56ch;
+      margin-top: 14px;
+    }
+
+    .hero-actions { display: flex; gap: 12px; margin-top: 20px; }
+
+    .ghost {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: transparent;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.26);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .metric {
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .metric .k { font-size: 1.4rem; font-weight: 700; }
+    .metric .l { font-size: 0.9rem; color: var(--muted); }
+
+    .grid {
+      padding: 34px 0 72px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .feature h3 { margin: 0 0 8px; font-size: 1.06rem; }
+    .feature p { margin: 0; color: var(--muted); line-height: 1.45; }
+    .pill { font-size: 0.8rem; color: var(--accent); font-weight: 700; }
+
+    .status-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      font-size: 0.82rem;
+      padding: 6px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #d5ebff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .up { border-color: rgba(52, 211, 153, 0.45); color: var(--success); }
+    .latency { border-color: rgba(251, 191, 36, 0.45); color: var(--warn); }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .metrics { grid-template-columns: 1fr; }
+      .hero-actions { flex-direction: column; }
+      .cta, .ghost { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="nav">
+      <div class="logo">Nexora Finance AI</div>
+      <button class="cta">Request Demo</button>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1>Operate Trading Intelligence at Machine Speed</h1>
+        <p class="sub">
+          A unified AI platform for multi-chain market discovery, real-time opportunity scoring,
+          and execution governance with built-in risk controls.
+        </p>
+        <div class="hero-actions">
+          <button class="cta">Start Free Trial</button>
+          <button class="ghost">View Architecture</button>
+        </div>
+        <div class="status-row">
+          <span class="status up">Uptime 99.98%</span>
+          <span class="status latency">P95 Latency 42ms</span>
+          <span class="status">26 Chains Connected</span>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <h3 style="margin:0 0 10px;">Live Command Center</h3>
+        <p style="margin:0;color:var(--muted);">Signal, research, and execution telemetry in a single control plane.</p>
+        <div class="metrics">
+          <div class="metric"><div class="k">4.2M</div><div class="l">Events Processed / day</div></div>
+          <div class="metric"><div class="k">812</div><div class="l">Opportunities Ranked / min</div></div>
+          <div class="metric"><div class="k">63ms</div><div class="l">Avg Decision Time</div></div>
+          <div class="metric"><div class="k">0.04%</div><div class="l">Execution Error Rate</div></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="grid">
+      <article class="panel feature">
+        <div class="pill">Ingestion</div>
+        <h3>Multi-Chain Data Mesh</h3>
+        <p>Normalize EVM and non-EVM streams into a resilient event model with backpressure-safe queues.</p>
+      </article>
+      <article class="panel feature">
+        <div class="pill">Intelligence</div>
+        <h3>AI Opportunity Scoring</h3>
+        <p>Score candidates with liquidity, holder, contract, and anomaly signals before strategy evaluation.</p>
+      </article>
+      <article class="panel feature">
+        <div class="pill">Execution</div>
+        <h3>Guardrailed Automation</h3>
+        <p>Route trades via policy-aware execution with configurable risk limits and post-trade observability.</p>
+      </article>
+    </section>
+  </div>
+</body>
+</html>
