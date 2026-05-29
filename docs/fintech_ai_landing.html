@@ -185,6 +185,107 @@
       animation: ringPulse calc(var(--t-slow) * 1.2) var(--ease-smooth) infinite;
     }
 
+
+    .panel-link {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.14;
+    }
+
+    .hero-left,
+    .hero-right,
+    .card,
+    .phase {
+      backdrop-filter: blur(10px);
+      background-blend-mode: screen;
+      position: relative;
+    }
+
+    .hero-left::after,
+    .hero-right::after,
+    .card .hud-corners,
+    .phase .hud-corners {
+      pointer-events: none;
+    }
+
+    .card::after,
+    .phase::after,
+    .hero-right::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(145, 204, 255, 0.14) 48%, transparent 56%);
+      transform: translateX(-120%);
+      animation: beamSweep calc(var(--t-slow) * 1.4) var(--ease-smooth) infinite;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .card::before,
+    .phase::before,
+    .hero-right {
+      box-shadow: inset 0 0 0 1px rgba(170, 216, 255, 0.08);
+    }
+
+    .hud-corners {
+      position: absolute;
+      inset: 8px;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .hud-corners::before,
+    .hud-corners::after {
+      content: "";
+      position: absolute;
+      width: 18px; height: 18px;
+      border: 1px solid rgba(157, 212, 255, 0.45);
+      opacity: 0.55;
+      animation: pulse calc(var(--t-fast) * 0.7) var(--ease-smooth) infinite;
+    }
+
+    .hud-corners::before { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+    .hud-corners::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+    .card-glow,
+    .panel-glow {
+      position: absolute;
+      inset: -25%;
+      pointer-events: none;
+      border-radius: inherit;
+      background: radial-gradient(220px 140px at var(--mx,50%) var(--my,50%), rgba(116, 198, 255, 0.22), transparent 70%);
+      opacity: 0;
+      transition: opacity 220ms var(--ease-smooth);
+      mix-blend-mode: screen;
+    }
+
+    .card:hover .card-glow,
+    .hero-right:hover .panel-glow,
+    .hero-left:hover .panel-glow,
+    .phase:hover .panel-glow { opacity: 1; }
+
+    .float-motes {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.26;
+    }
+
+    .float-motes::before,
+    .float-motes::after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(138, 206, 255, 0.45) 0 1px, transparent 2px),
+        radial-gradient(circle at 78% 62%, rgba(138, 206, 255, 0.35) 0 1px, transparent 2px),
+        radial-gradient(circle at 62% 24%, rgba(138, 206, 255, 0.38) 0 1px, transparent 2px);
+      animation: particleDrift calc(var(--t-slow) * 1.2) linear infinite alternate;
+    }
+
     .nav { padding: 24px 0; display: flex; justify-content: space-between; align-items: center; }
     .brand { font-weight: 700; letter-spacing: 0.6px; }
 
@@ -582,6 +683,7 @@
   <div class="bg-neural"></div>
   <div class="bg-particles"></div>
   <div class="bg-parallax" id="bgParallax"></div>
+  <canvas class="panel-link" id="panelLink"></canvas>
   <div class="shell">
     <header class="nav">
       <div class="brand">Silvereyes Technologies</div>
@@ -590,6 +692,9 @@
 
     <section class="hero">
       <div class="hero-left">
+        <span class="panel-glow"></span>
+        <span class="float-motes"></span>
+        <span class="hud-corners"></span>
         <h1>AI-Powered Multi-Chain Financial Intelligence</h1>
         <p class="sub">Autonomous infrastructure for real-time blockchain analytics, AI-driven market intelligence, and decentralized financial systems.</p>
         <div class="actions">
@@ -603,6 +708,9 @@
         </div>
       </div>
       <aside class="hero-right">
+        <span class="panel-glow"></span>
+        <span class="float-motes"></span>
+        <span class="hud-corners"></span>
         <h3>Network Intelligence Fabric</h3>
         <p>Live orchestration plane with active chain routes, telemetry pulses, AI confidence overlays, and synchronized chain-state pathways.</p>
         <div class="fabric">
@@ -630,9 +738,15 @@
     <section class="dark-band">
       <h2>Why Silvereyes</h2>
       <div class="grid-3">
-        <article class="card"><h3>Operational Precision</h3><p class="label">High-fidelity chain telemetry combined with deterministic execution controls and policy-aware safeguards.</p></article>
-        <article class="card"><h3>AI Infrastructure Core</h3><p class="label">Signal-ranking intelligence with confidence-weighted routing across autonomous financial pipelines.</p></article>
-        <article class="card"><h3>Institutional Posture</h3><p class="label">Engineered for resilient uptime, graceful degradation, and enterprise governance visibility.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Operational Precision</h3><p class="label">High-fidelity chain telemetry combined with deterministic execution controls and policy-aware safeguards.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>AI Infrastructure Core</h3><p class="label">Signal-ranking intelligence with confidence-weighted routing across autonomous financial pipelines.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Institutional Posture</h3><p class="label">Engineered for resilient uptime, graceful degradation, and enterprise governance visibility.</p></article>
       </div>
     </section>
 
@@ -640,6 +754,8 @@
       <h2>Platform Preview</h2>
       <div class="grid-3">
         <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span>
           <h3>Market Intelligence</h3>
           <div class="terminal">
             <div class="row"><span>Telemetry Coverage</span><strong>4.8M events</strong></div>
@@ -650,6 +766,8 @@
           <div class="spark"></div>
         </article>
         <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span>
           <h3>AI Confidence Scoring</h3>
           <div class="terminal">
             <div class="row"><span>Chain Synchronization Integrity</span><strong>99.98%</strong></div>
@@ -664,6 +782,8 @@
           <div class="spark"></div>
         </article>
         <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span>
           <h3>Execution Monitoring</h3>
           <div class="terminal">
             <div class="row"><span>Infrastructure Availability</span><strong class="status-on">99.98%</strong></div>
@@ -679,10 +799,18 @@
     <section class="dark-band cards-stream">
       <h2>Core Technologies</h2>
       <div class="grid-2">
-        <article class="card"><h3>Multi-Chain Event Fabric</h3><p class="label">Unified ingestion and normalization across EVM and non-EVM chains with governance-aware event flow.</p></article>
-        <article class="card"><h3>Adaptive AI Inference Layer</h3><p class="label">Confidence-scored intelligence models for liquidity, risk, anomaly, and market state understanding.</p></article>
-        <article class="card"><h3>Autonomous Risk Controls</h3><p class="label">Real-time guardrails and policy-aware execution modules for operational safety at scale.</p></article>
-        <article class="card"><h3>Institutional Observability</h3><p class="label">Terminal-grade telemetry, stage-level diagnostics, and operational accountability throughout runtime.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Multi-Chain Event Fabric</h3><p class="label">Unified ingestion and normalization across EVM and non-EVM chains with governance-aware event flow.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Adaptive AI Inference Layer</h3><p class="label">Confidence-scored intelligence models for liquidity, risk, anomaly, and market state understanding.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Autonomous Risk Controls</h3><p class="label">Real-time guardrails and policy-aware execution modules for operational safety at scale.</p></article>
+        <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span><h3>Institutional Observability</h3><p class="label">Terminal-grade telemetry, stage-level diagnostics, and operational accountability throughout runtime.</p></article>
       </div>
     </section>
 
@@ -690,16 +818,22 @@
       <h2>Current Development Focus</h2>
       <div class="timeline">
         <article class="phase">
+          <span class="panel-glow"></span>
+          <span class="hud-corners"></span>
           <div class="phase-head"><strong><span class="light"></span>Pipeline Synchronization</strong><span>Phase 1</span></div>
           <p class="label">Cross-chain state harmonization and deterministic routing integrity.</p>
           <div class="track"><div class="bar" style="width:78%"></div></div>
         </article>
         <article class="phase">
+          <span class="panel-glow"></span>
+          <span class="hud-corners"></span>
           <div class="phase-head"><strong><span class="light"></span>AI Regime Classification</strong><span>Phase 2</span></div>
           <p class="label">Adaptive market regime detection and real-time anomaly prioritization.</p>
           <div class="track"><div class="bar" style="width:64%"></div></div>
         </article>
         <article class="phase">
+          <span class="panel-glow"></span>
+          <span class="hud-corners"></span>
           <div class="phase-head"><strong><span class="light"></span>Deployment Readiness</strong><span>Phase 3</span></div>
           <p class="label">Institutional onboarding pathways and autonomous orchestration hardening.</p>
           <div class="track"><div class="bar" style="width:52%"></div></div>
@@ -709,11 +843,15 @@
 
     <section class="grid-2">
       <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span>
         <h2>Early Access</h2>
         <p class="label">Priority onboarding for partners building autonomous decentralized financial infrastructure.</p>
         <div class="actions"><button class="btn primary">Request Early Access</button></div>
       </article>
       <article class="card">
+          <span class="card-glow"></span>
+          <span class="hud-corners"></span>
         <h2>Contact</h2>
         <p class="label">Partnerships: <a href="mailto:partnerships@silvereyes.tech">partnerships@silvereyes.tech</a></p>
         <p class="label">Architecture: <a href="mailto:architecture@silvereyes.tech">architecture@silvereyes.tech</a></p>
@@ -756,6 +894,7 @@
       const p = document.getElementById('bgParallax');
       const c1 = document.getElementById('envLayer');
       const c2 = document.getElementById('envLayer2');
+      const pl = document.getElementById('panelLink');
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       let tx = 0, ty = 0, cx = 0, cy = 0;
 
@@ -772,6 +911,7 @@
 
       const ctx1 = c1 ? fit(c1) : null;
       const ctx2 = c2 ? fit(c2) : null;
+      const plx = pl ? fit(pl) : null;
 
       const particles = Array.from({ length: 30 }, (_, i) => ({
         x: Math.random() * window.innerWidth,
@@ -802,6 +942,44 @@
         if (o.x > window.innerWidth + 20) o.x = -20;
         if (o.y < -20) o.y = window.innerHeight + 20;
         if (o.y > window.innerHeight + 20) o.y = -20;
+      }
+
+
+      const reactive = Array.from(document.querySelectorAll('.card, .hero-left, .hero-right, .phase'));
+      function updateReactive(x, y) {
+        reactive.forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const mx = ((x - r.left) / Math.max(r.width, 1)) * 100;
+          const my = ((y - r.top) / Math.max(r.height, 1)) * 100;
+          el.style.setProperty('--mx', mx.toFixed(2) + '%');
+          el.style.setProperty('--my', my.toFixed(2) + '%');
+        });
+      }
+
+      function drawPanelLinks() {
+        if (!plx || reduce) return;
+        plx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        const a = document.querySelector('.hero-right');
+        const b = document.querySelector('section.cards-stream .grid-3');
+        const c = document.querySelector('section.dark-band.cards-stream .grid-2');
+        if (!(a && b && c)) return;
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        const rc = c.getBoundingClientRect();
+        const pts = [
+          [ra.left + ra.width * 0.75, ra.top + ra.height * 0.95],
+          [rb.left + rb.width * 0.42, rb.top + 8],
+          [rc.left + rc.width * 0.58, rc.top + 8]
+        ];
+        plx.strokeStyle = 'rgba(132,196,255,0.18)';
+        plx.lineWidth = 1.2;
+        plx.setLineDash([6, 8]);
+        plx.beginPath();
+        plx.moveTo(pts[0][0], pts[0][1]);
+        plx.quadraticCurveTo(pts[1][0], (pts[0][1] + pts[1][1]) * 0.5, pts[1][0], pts[1][1]);
+        plx.quadraticCurveTo(pts[2][0], (pts[1][1] + pts[2][1]) * 0.5, pts[2][0], pts[2][1]);
+        plx.stroke();
+        plx.setLineDash([]);
       }
 
       function draw(t) {
@@ -868,6 +1046,7 @@
           }
         }
 
+        drawPanelLinks();
         if (p) {
           cx += (tx - cx) * 0.04;
           cy += (ty - cy) * 0.04;
@@ -883,12 +1062,20 @@
       }
 
       window.addEventListener('mousemove', function (e) {
+        updateReactive(e.clientX, e.clientY);
         const x = (e.clientX / window.innerWidth) - 0.5;
         const y = (e.clientY / window.innerHeight) - 0.5;
         tx = x * 8;
         ty = y * 8;
       }, { passive: true });
 
+      window.addEventListener('scroll', function(){
+        const y = window.scrollY || 0;
+        reactive.forEach((el, i) => {
+          const d = Math.sin((y * 0.002) + i) * 2;
+          el.style.boxShadow = `0 ${18 + d}px ${34 + Math.abs(d)}px rgba(0,0,0,0.34)`;
+        });
+      }, { passive: true });
       window.addEventListener('resize', onResize, { passive: true });
       if (!reduce) requestAnimationFrame(draw);
     })();
