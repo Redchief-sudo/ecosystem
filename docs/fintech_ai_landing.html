@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Silvereyes | AI-Powered Multi-Chain Financial Intelligence</title>
   <style>
+    
     :root {
       --bg0: #020713;
       --bg1: #051327;
@@ -17,6 +18,10 @@
       --border: rgba(147, 189, 255, 0.28);
       --ok: #52e39a;
       --warn: #f7c948;
+      --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+      --t-slow: 14s;
+      --t-mid: 8s;
+      --t-fast: 4s;
     }
 
     * { box-sizing: border-box; }
@@ -51,7 +56,7 @@
       background-size: 46px 46px;
       opacity: 0.24;
       mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
-      animation: gridShift 16s linear infinite;
+      animation: gridShift var(--t-slow) linear infinite;
     }
 
     body::after {
@@ -60,7 +65,7 @@
         radial-gradient(180px 2px at 72% 38%, rgba(129, 180, 255, 0.58), transparent 70%),
         radial-gradient(160px 2px at 45% 62%, rgba(111, 199, 255, 0.42), transparent 70%);
       opacity: 0.65;
-      animation: streamShift 8s ease-in-out infinite alternate;
+      animation: streamShift var(--t-mid) var(--ease-smooth) infinite alternate;
     }
 
     @keyframes gridShift { from { transform: translateY(0); } to { transform: translateY(24px); } }
@@ -69,8 +74,13 @@
     @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(320%); } }
     @keyframes shiftX { from { transform: translateX(-6px); } to { transform: translateX(8px); } }
+    @keyframes floatY { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
+    @keyframes glowBreath { 0%,100% { box-shadow: 0 0 0 rgba(96,185,255,0); } 50% { box-shadow: 0 0 22px rgba(96,185,255,0.28); } }
 
     .shell { width: min(1200px, 92%); margin: 0 auto; position: relative; z-index: 1; }
+    .shell::before { content:""; position: fixed; inset: 0; pointer-events:none; z-index:-1; background:
+      radial-gradient(220px 220px at 18% 72%, rgba(120,180,255,0.10), transparent 70%),
+      radial-gradient(240px 240px at 82% 64%, rgba(140,200,255,0.08), transparent 70%); animation: floatY 10s ease-in-out infinite alternate; }
 
     .nav { padding: 24px 0; display: flex; justify-content: space-between; align-items: center; }
     .brand { font-weight: 700; letter-spacing: 0.6px; }
@@ -86,7 +96,8 @@
       transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease;
     }
     .btn:hover { transform: translateY(-2px); border-color: rgba(153, 215, 255, 0.56); box-shadow: 0 12px 28px rgba(60, 120, 215, 0.24); }
-    .btn.primary { background: linear-gradient(135deg, var(--silver), var(--cyan)); color: #032236; border-color: transparent; }
+    .btn.primary { background: linear-gradient(135deg, var(--silver), var(--cyan)); color: #032236; border-color: transparent; box-shadow: 0 10px 26px rgba(102, 210, 255, 0.35); animation: glowBreath var(--t-fast) var(--ease-smooth) infinite; }
+    .btn.primary:hover { box-shadow: 0 16px 36px rgba(102, 210, 255, 0.5); }
 
     .hero {
       margin-top: 8px;
@@ -138,7 +149,7 @@
     .chip { border: 1px solid rgba(161, 204, 255, 0.28); background: rgba(140, 184, 238, 0.08); border-radius: 999px; padding: 6px 11px; font-size: .82rem; }
 
     .hero-right {
-      background: linear-gradient(170deg, rgba(10, 23, 44, 0.9), rgba(7, 14, 27, 0.95));
+      background: linear-gradient(170deg, rgba(11, 25, 47, 0.9), rgba(7, 15, 29, 0.95));
       border: 1px solid rgba(143, 191, 255, 0.34);
       box-shadow: 0 24px 46px rgba(0, 0, 0, 0.44);
       isolation: isolate;
@@ -149,6 +160,7 @@
 
     .fabric {
       height: 250px;
+      animation: glowBreath calc(var(--t-slow) * 0.45) var(--ease-smooth) infinite;
       border: 1px solid rgba(140, 186, 255, 0.25);
       border-radius: 14px;
       position: relative;
@@ -166,7 +178,7 @@
         linear-gradient(90deg, rgba(128, 179, 255, 0.14) 1px, transparent 1px);
       background-size: 28px 28px;
       opacity: 0.5;
-      animation: gridShift 9s linear infinite;
+      animation: gridShift calc(var(--t-slow) * 0.6) linear infinite;
     }
 
     .fabric::after {
@@ -176,7 +188,7 @@
       top: -30%;
       height: 28%;
       background: linear-gradient(transparent, rgba(137, 195, 255, 0.23), transparent);
-      animation: scan 4.8s linear infinite;
+      animation: scan calc(var(--t-fast) * 1.2) linear infinite;
     }
 
     .mesh-route,
@@ -187,7 +199,7 @@
       transform-origin: left;
       border-radius: 999px;
       background: linear-gradient(90deg, rgba(141, 210, 255, 0), rgba(141, 210, 255, 0.82), rgba(141, 210, 255, 0));
-      animation: shiftX 2.8s ease-in-out infinite alternate;
+      animation: shiftX calc(var(--t-fast) * 0.7) var(--ease-smooth) infinite alternate;
     }
 
     .mesh-route { width: 170px; top: 58px; left: 40px; transform: rotate(15deg); }
@@ -200,7 +212,7 @@
       border-radius: 50%;
       background: #8de0ff;
       box-shadow: 0 0 14px rgba(106, 210, 255, 0.9);
-      animation: pulse 1.8s ease-in-out infinite;
+      animation: pulse calc(var(--t-fast) * 0.45) var(--ease-smooth) infinite;
     }
 
     .d1 { top: 42px; left: 42px; }
@@ -215,7 +227,7 @@
       border-radius: 50%;
       top: 24px;
       right: 20px;
-      animation: orbit 16s linear infinite;
+      animation: orbit var(--t-slow) linear infinite;
     }
 
     .fabric-hud {
@@ -245,7 +257,7 @@
     }
 
     .dark-band {
-      background: linear-gradient(180deg, rgba(7, 16, 30, 0.74), rgba(6, 13, 25, 0.9));
+      background: linear-gradient(180deg, rgba(8, 18, 33, 0.70), rgba(6, 14, 27, 0.88));
       border: 1px solid rgba(136, 183, 255, 0.14);
       border-radius: 16px;
       padding: 16px;
@@ -265,7 +277,7 @@
     .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
     .card {
-      background: linear-gradient(165deg, rgba(18, 36, 66, 0.72), rgba(8, 17, 33, 0.86));
+      background: linear-gradient(165deg, rgba(18, 35, 63, 0.70), rgba(9, 18, 35, 0.84));
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 16px;
@@ -311,7 +323,7 @@
       background:
         linear-gradient(180deg, rgba(89, 162, 255, 0.16), transparent),
         linear-gradient(90deg, transparent 0 6%, rgba(109, 189, 255, 0.75) 8%, transparent 12%, transparent 20%, rgba(109, 189, 255, 0.55) 24%, transparent 28%, transparent 46%, rgba(109, 189, 255, 0.8) 50%, transparent 55%, transparent 70%, rgba(109, 189, 255, 0.62) 74%, transparent 80%);
-      animation: streamShift 3.2s ease-in-out infinite alternate;
+      animation: streamShift calc(var(--t-fast) * 0.8) var(--ease-smooth) infinite alternate;
       border: 1px solid rgba(130, 185, 255, 0.2);
       margin-top: 8px;
     }
@@ -324,7 +336,7 @@
       background:
         linear-gradient(180deg, rgba(116, 182, 255, 0.2), transparent),
         linear-gradient(90deg, rgba(126, 192, 255, 0) 0%, rgba(126, 192, 255, 0.7) 25%, rgba(126, 192, 255, 0.18) 38%, rgba(126, 192, 255, 0.75) 60%, rgba(126, 192, 255, 0.15) 74%, rgba(126, 192, 255, 0.72) 92%);
-      animation: shiftX 4s ease-in-out infinite alternate;
+      animation: shiftX var(--t-fast) var(--ease-smooth) infinite alternate;
     }
 
     .score-bars { margin-top: 8px; }
@@ -403,6 +415,8 @@
         <h3>Network Intelligence Fabric</h3>
         <p>Live orchestration plane with active chain routes, telemetry pulses, AI confidence overlays, and synchronized chain-state pathways.</p>
         <div class="fabric">
+          <span class="telemetry-dot" style="top:32px;left:190px;animation-delay:1.2s"></span>
+          <span class="telemetry-dot" style="top:142px;left:74px;animation-delay:1.5s"></span>
           <span class="mesh-route"></span>
           <span class="mesh-route-2"></span>
           <span class="mesh-route-3"></span>
@@ -437,9 +451,9 @@
         <article class="card">
           <h3>Market Intelligence</h3>
           <div class="terminal">
-            <div class="row"><span>Events / day</span><strong>4.8M</strong></div>
-            <div class="row"><span>Signal latency</span><strong>37ms</strong></div>
-            <div class="row"><span>Active chains</span><strong class="status-on">26 ONLINE</strong></div>
+            <div class="row"><span>Telemetry Coverage</span><strong>4.8M events</strong></div>
+            <div class="row"><span>Signal Confidence Stability</span><strong>99.2%</strong></div>
+            <div class="row"><span>Network Consensus State</span><strong class="status-on">26 SYNCHRONIZED</strong></div>
           </div>
           <div class="mini-chart"></div>
           <div class="spark"></div>
@@ -447,9 +461,9 @@
         <article class="card">
           <h3>AI Confidence Scoring</h3>
           <div class="terminal">
-            <div class="row"><span>Avg confidence</span><strong>0.94</strong></div>
-            <div class="row"><span>Signals / min</span><strong>812</strong></div>
-            <div class="row"><span>Outlier quarantine</span><strong class="status-warn">6.1%</strong></div>
+            <div class="row"><span>Chain Synchronization Integrity</span><strong>99.98%</strong></div>
+            <div class="row"><span>Execution Determinism</span><strong>99.94%</strong></div>
+            <div class="row"><span>Telemetry Drift Events</span><strong class="status-warn">0.6%</strong></div>
           </div>
           <div class="score-bars">
             <div class="score-line"><span>Liquidity</span><div class="score-track"><div class="score-fill" style="width:88%"></div></div></div>
@@ -461,9 +475,9 @@
         <article class="card">
           <h3>Execution Monitoring</h3>
           <div class="terminal">
-            <div class="row"><span>Network health</span><strong class="status-on">99.98%</strong></div>
-            <div class="row"><span>Decision cycle</span><strong>63ms</strong></div>
-            <div class="row"><span>Error rate</span><strong>0.04%</strong></div>
+            <div class="row"><span>Infrastructure Availability</span><strong class="status-on">99.98%</strong></div>
+            <div class="row"><span>Autonomous Decision Cycle</span><strong>63ms</strong></div>
+            <div class="row"><span>Execution Fault Rate</span><strong>0.04%</strong></div>
           </div>
           <div class="mini-chart"></div>
           <div class="spark"></div>
