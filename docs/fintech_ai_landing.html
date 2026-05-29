@@ -6,32 +6,32 @@
   <title>Silvereyes | AI-Powered Multi-Chain Financial Intelligence</title>
   <style>
     :root {
-      --bg-0: #020814;
-      --bg-1: #06152b;
-      --bg-2: #0b233f;
-      --silver: #c7d4e8;
-      --cyan: #55d7ff;
-      --blue: #3e7fff;
-      --panel: rgba(13, 26, 48, 0.62);
-      --panel-strong: rgba(10, 20, 38, 0.78);
-      --border: rgba(139, 185, 255, 0.28);
-      --text: #e8f1ff;
-      --muted: #9eb4ce;
-      --ok: #4ade80;
-      --warn: #facc15;
+      --bg0: #020713;
+      --bg1: #051327;
+      --bg2: #0a1f3d;
+      --ink: #eaf2ff;
+      --muted: #9eb5cf;
+      --cyan: #66deff;
+      --blue: #4c88ff;
+      --silver: #d7e2f0;
+      --panel: rgba(10, 23, 44, 0.6);
+      --panel-strong: rgba(9, 20, 38, 0.82);
+      --border: rgba(147, 189, 255, 0.28);
+      --ok: #52e39a;
+      --warn: #f7c948;
     }
 
     * { box-sizing: border-box; }
+    html, body { margin: 0; }
 
     body {
-      margin: 0;
-      color: var(--text);
       font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", sans-serif;
+      color: var(--ink);
       background:
-        radial-gradient(1000px 600px at 8% 6%, rgba(91, 182, 255, 0.26), transparent 62%),
-        radial-gradient(900px 540px at 95% 12%, rgba(164, 198, 232, 0.2), transparent 64%),
-        radial-gradient(1100px 700px at 52% 100%, rgba(64, 120, 255, 0.14), transparent 72%),
-        linear-gradient(155deg, var(--bg-0) 0%, var(--bg-1) 48%, var(--bg-2) 100%);
+        radial-gradient(1200px 700px at 8% 6%, rgba(110, 194, 255, 0.24), transparent 62%),
+        radial-gradient(900px 520px at 96% 8%, rgba(176, 205, 236, 0.18), transparent 62%),
+        radial-gradient(1100px 700px at 50% 100%, rgba(63, 116, 255, 0.16), transparent 70%),
+        linear-gradient(150deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
@@ -48,333 +48,392 @@
 
     body::before {
       background-image:
-        linear-gradient(rgba(170, 210, 255, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(170, 210, 255, 0.08) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: radial-gradient(circle at 50% 38%, black, transparent 78%);
-      opacity: 0.28;
+        linear-gradient(rgba(165, 210, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(165, 210, 255, 0.08) 1px, transparent 1px);
+      background-size: 46px 46px;
+      opacity: 0.24;
+      mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
+      animation: gridShift 14s linear infinite;
     }
 
     body::after {
       background:
-        radial-gradient(140px 2px at 15% 26%, rgba(112, 202, 255, 0.7), transparent 70%),
-        radial-gradient(180px 2px at 72% 36%, rgba(135, 182, 255, 0.6), transparent 70%),
-        radial-gradient(160px 2px at 40% 62%, rgba(112, 202, 255, 0.5), transparent 70%);
-      opacity: 0.6;
-      animation: drift 10s linear infinite alternate;
+        radial-gradient(140px 2px at 14% 24%, rgba(111, 199, 255, 0.68), transparent 70%),
+        radial-gradient(180px 2px at 72% 38%, rgba(129, 180, 255, 0.58), transparent 70%),
+        radial-gradient(160px 2px at 45% 62%, rgba(111, 199, 255, 0.42), transparent 70%);
+      opacity: 0.7;
+      animation: streamShift 8s ease-in-out infinite alternate;
     }
 
-    @keyframes drift {
-      from { transform: translateX(-8px); }
-      to { transform: translateX(8px); }
-    }
+    @keyframes gridShift { from { transform: translateY(0); } to { transform: translateY(22px); } }
+    @keyframes streamShift { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
+    @keyframes pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
+    @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes scan { from { transform: translateY(-100%); } to { transform: translateY(300%); } }
 
-    .shell {
-      position: relative;
-      z-index: 1;
-      width: min(1180px, 92%);
-      margin: 0 auto;
-    }
+    .shell { width: min(1200px, 92%); margin: 0 auto; position: relative; z-index: 1; }
 
-    .nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 26px 0;
-    }
+    .nav { padding: 24px 0; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-weight: 700; letter-spacing: 0.6px; }
 
-    .logo { font-weight: 700; letter-spacing: 0.5px; }
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 18px;
+      font-weight: 700;
+      background: rgba(18, 34, 63, 0.5);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .btn:hover { transform: translateY(-2px); border-color: rgba(153, 215, 255, 0.56); box-shadow: 0 12px 28px rgba(60, 120, 215, 0.24); }
+    .btn.primary { background: linear-gradient(135deg, var(--silver), var(--cyan)); color: #032236; border-color: transparent; }
 
     .hero {
-      padding: 34px 0 20px;
+      margin-top: 8px;
       display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 22px;
-      align-items: center;
+      grid-template-columns: 1.12fr 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .hero-left, .hero-right { border-radius: 20px; padding: 24px; position: relative; overflow: hidden; }
+
+    .hero-left {
+      background: linear-gradient(160deg, rgba(14, 33, 62, 0.75), rgba(8, 18, 34, 0.8));
+      border: 1px solid rgba(149, 194, 255, 0.3);
+      box-shadow: 0 28px 52px rgba(0, 0, 0, 0.45);
+    }
+
+    .hero-left::before {
+      content: "";
+      position: absolute;
+      width: 340px; height: 340px;
+      right: -80px; top: -90px;
+      background: radial-gradient(circle, rgba(132, 205, 255, 0.28), transparent 66%);
+      filter: blur(8px);
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(2rem, 5vw, 3.8rem);
-      line-height: 1.05;
-      letter-spacing: 0.2px;
-      text-shadow: 0 0 24px rgba(99, 191, 255, 0.22);
+      font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+      line-height: 1.02;
+      letter-spacing: 0.1px;
+      background: linear-gradient(120deg, #f5f9ff, #b5d7ff 45%, #76dfff 85%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 28px rgba(112, 192, 255, 0.18);
     }
 
     .sub {
       margin-top: 14px;
-      color: var(--muted);
+      color: #c2d4ea;
+      font-size: clamp(1rem, 2.1vw, 1.2rem);
+      line-height: 1.6;
       max-width: 62ch;
-      font-size: clamp(1rem, 2.2vw, 1.17rem);
-      line-height: 1.55;
     }
 
-    .btn-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .actions { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .chip-row { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .chip { border: 1px solid rgba(161, 204, 255, 0.28); background: rgba(140, 184, 238, 0.08); border-radius: 999px; padding: 6px 11px; font-size: .82rem; }
 
-    .btn {
-      border: 1px solid transparent;
-      border-radius: 12px;
-      padding: 11px 18px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    .hero-right {
+      background: linear-gradient(170deg, rgba(11, 24, 45, 0.88), rgba(7, 14, 27, 0.92));
+      border: 1px solid rgba(143, 191, 255, 0.34);
+      box-shadow: 0 24px 46px rgba(0, 0, 0, 0.44);
+      isolation: isolate;
     }
 
-    .btn:hover { transform: translateY(-2px); }
+    .hero-right h3 { margin: 0; }
+    .hero-right p { margin: 7px 0 12px; color: var(--muted); }
 
-    .btn.primary {
-      color: #032032;
-      background: linear-gradient(135deg, var(--silver), var(--cyan));
-      box-shadow: 0 10px 26px rgba(90, 177, 255, 0.35);
-    }
-
-    .btn.secondary {
-      color: var(--text);
-      background: rgba(10, 28, 56, 0.44);
-      border-color: var(--border);
-      box-shadow: 0 10px 22px rgba(8, 20, 42, 0.38);
-    }
-
-    .chip-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    .chip {
-      padding: 6px 11px;
-      border-radius: 999px;
-      border: 1px solid rgba(168, 210, 255, 0.28);
-      background: rgba(154, 195, 240, 0.08);
-      color: #d8e9ff;
-      font-size: 0.82rem;
-    }
-
-    .panel {
-      background: linear-gradient(170deg, rgba(17, 35, 63, 0.88), rgba(8, 17, 32, 0.78));
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(8px);
-      transition: border-color 0.25s ease, transform 0.25s ease;
-    }
-
-    .panel:hover {
-      border-color: rgba(133, 200, 255, 0.55);
-      transform: translateY(-2px);
-    }
-
-    .node-map {
-      margin-top: 12px;
-      height: 168px;
-      border-radius: 12px;
-      border: 1px solid rgba(151, 192, 255, 0.22);
+    .fabric {
+      height: 230px;
+      border: 1px solid rgba(140, 186, 255, 0.25);
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
       background:
-        radial-gradient(circle at 18% 24%, rgba(109, 191, 255, 0.85) 0 5px, transparent 6px),
-        radial-gradient(circle at 47% 58%, rgba(133, 202, 255, 0.78) 0 5px, transparent 6px),
-        radial-gradient(circle at 78% 34%, rgba(180, 210, 240, 0.9) 0 5px, transparent 6px),
-        linear-gradient(130deg, transparent 20%, rgba(120, 170, 255, 0.35) 21%, transparent 24%),
-        linear-gradient(25deg, transparent 48%, rgba(120, 170, 255, 0.28) 49%, transparent 52%),
-        linear-gradient(180deg, rgba(19, 40, 71, 0.7), rgba(10, 20, 38, 0.9));
+        radial-gradient(circle at 20% 25%, rgba(117, 202, 255, 0.95) 0 4px, transparent 5px),
+        radial-gradient(circle at 48% 58%, rgba(148, 213, 255, 0.92) 0 4px, transparent 5px),
+        radial-gradient(circle at 76% 35%, rgba(195, 220, 240, 0.95) 0 4px, transparent 5px),
+        linear-gradient(123deg, transparent 20%, rgba(114, 167, 255, 0.38) 21%, transparent 24%),
+        linear-gradient(33deg, transparent 54%, rgba(114, 167, 255, 0.28) 55%, transparent 58%),
+        linear-gradient(180deg, rgba(18, 37, 68, 0.9), rgba(8, 18, 35, 0.98));
     }
 
-    section { margin-top: 22px; }
-
-    .section-title {
-      margin: 0 0 12px;
-      font-size: clamp(1.25rem, 2vw, 1.65rem);
-      letter-spacing: 0.25px;
+    .fabric::before {
+      content: "";
+      position: absolute;
+      width: 180px; height: 180px;
+      border: 1px solid rgba(126, 190, 255, 0.26);
+      border-radius: 50%;
+      top: 20px; right: 20px;
+      animation: orbit 14s linear infinite;
     }
 
-    .grid-3 {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    .fabric::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(transparent, rgba(137, 195, 255, 0.22), transparent);
+      height: 24%;
+      animation: scan 4.5s linear infinite;
     }
 
-    .grid-2 {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .telemetry-dot {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #8de0ff;
+      box-shadow: 0 0 14px rgba(106, 210, 255, 0.9);
+      animation: pulse 1.8s ease-in-out infinite;
     }
 
-    .kpi { font-size: 1.48rem; font-weight: 700; }
-    .label { color: var(--muted); font-size: 0.92rem; }
+    .d1 { top: 42px; left: 42px; }
+    .d2 { top: 126px; left: 146px; animation-delay: .45s; }
+    .d3 { top: 84px; left: 264px; animation-delay: .9s; }
 
-    .metric-grid {
-      display: grid;
-      gap: 10px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 12px;
+    section { margin-top: 24px; }
+    h2 { margin: 0 0 12px; font-size: clamp(1.3rem, 2vw, 1.75rem); }
+
+    .divider {
+      height: 1px;
+      margin: 22px 0 0;
+      background: linear-gradient(90deg, transparent, rgba(132, 195, 255, 0.52), transparent);
+      filter: drop-shadow(0 0 7px rgba(111, 189, 255, 0.45));
     }
 
-    .metric {
-      background: rgba(144, 190, 245, 0.08);
-      border: 1px solid rgba(147, 190, 245, 0.2);
-      border-radius: 10px;
+    .grid-3, .grid-2 { display: grid; gap: 14px; }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      background: linear-gradient(165deg, rgba(18, 36, 66, 0.72), rgba(8, 17, 33, 0.86));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(120deg, transparent 35%, rgba(137, 199, 255, 0.4), transparent 65%);
+      opacity: 0;
+      transition: opacity .25s ease;
+      pointer-events: none;
+    }
+
+    .card:hover { transform: translateY(-4px); border-color: rgba(155, 214, 255, 0.5); box-shadow: 0 24px 44px rgba(8, 24, 49, 0.48); }
+    .card:hover::before { opacity: 1; }
+
+    .label { color: var(--muted); font-size: .92rem; line-height: 1.55; }
+    .kpi { font-size: 1.52rem; font-weight: 700; }
+
+    .terminal {
+      background: linear-gradient(180deg, rgba(6, 15, 28, 0.95), rgba(5, 12, 22, 0.95));
+      border: 1px solid rgba(122, 179, 255, 0.25);
+      border-radius: 12px;
       padding: 10px;
+      margin-top: 10px;
     }
 
-    .ok { color: var(--ok); }
-    .warn { color: var(--warn); }
+    .row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; font-size: .87rem; }
+    .row:last-child { margin-bottom: 0; }
 
-    .focus-list, .contact-list { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.6; }
+    .status-on { color: var(--ok); }
+    .status-warn { color: var(--warn); }
 
-    .cta-band {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: 1.2fr auto;
-      align-items: center;
-      background: linear-gradient(145deg, rgba(94, 160, 240, 0.2), rgba(15, 31, 58, 0.72));
+    .spark {
+      height: 32px;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(89, 162, 255, 0.16), transparent),
+        linear-gradient(90deg, transparent 0 6%, rgba(109, 189, 255, 0.75) 8%, transparent 12%, transparent 20%, rgba(109, 189, 255, 0.55) 24%, transparent 28%, transparent 46%, rgba(109, 189, 255, 0.8) 50%, transparent 55%, transparent 70%, rgba(109, 189, 255, 0.62) 74%, transparent 80%);
+      animation: streamShift 3.2s ease-in-out infinite alternate;
+      border: 1px solid rgba(130, 185, 255, 0.2);
     }
 
-    footer {
-      margin-top: 28px;
-      padding: 16px 0 24px;
-      color: var(--muted);
-      border-top: 1px solid rgba(139, 185, 255, 0.18);
-      font-size: 0.92rem;
+    .timeline { display: grid; gap: 12px; }
+    .phase {
+      background: var(--panel-strong);
+      border: 1px solid rgba(142, 192, 255, 0.26);
+      border-radius: 14px;
+      padding: 14px;
     }
+
+    .phase-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .light { width: 9px; height: 9px; border-radius: 50%; background: #88deff; box-shadow: 0 0 12px #88deff; animation: pulse 1.6s infinite; display: inline-block; margin-right: 6px; }
+    .track { margin-top: 10px; height: 8px; border-radius: 999px; background: rgba(126, 170, 230, 0.2); overflow: hidden; }
+    .bar { height: 100%; background: linear-gradient(90deg, #7ec3ff, #66deff); box-shadow: 0 0 14px rgba(117, 204, 255, 0.68); }
+
+    .footer {
+      margin-top: 30px;
+      border-top: 1px solid rgba(137, 187, 255, 0.22);
+      background: linear-gradient(180deg, rgba(12, 24, 44, 0.5), rgba(8, 15, 28, 0.75));
+      border-radius: 16px 16px 0 0;
+      padding: 18px 16px 24px;
+    }
+
+    .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px; }
 
     @media (max-width: 980px) {
-      .hero, .grid-3, .grid-2, .cta-band { grid-template-columns: 1fr; }
+      .hero, .grid-3, .grid-2, .footer-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 560px) {
-      .btn { width: 100%; }
-      .metric-grid { grid-template-columns: 1fr; }
+      .actions .btn { width: 100%; }
+      h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
     }
   </style>
 </head>
 <body>
   <div class="shell">
     <header class="nav">
-      <div class="logo">Silvereyes Technologies</div>
-      <button class="btn secondary">Enterprise Inquiries</button>
+      <div class="brand">Silvereyes Technologies</div>
+      <button class="btn">Enterprise Inquiries</button>
     </header>
 
     <section class="hero">
-      <div>
+      <div class="hero-left">
         <h1>AI-Powered Multi-Chain Financial Intelligence</h1>
         <p class="sub">Autonomous infrastructure for real-time blockchain analytics, AI-driven market intelligence, and decentralized financial systems.</p>
-        <div class="btn-row">
+        <div class="actions">
           <button class="btn primary">Request Early Access</button>
-          <button class="btn secondary">View Technology</button>
+          <button class="btn">View Technology</button>
         </div>
         <div class="chip-row">
-          <span class="chip">Institutional-Grade Telemetry</span>
-          <span class="chip">AI Confidence Scoring</span>
-          <span class="chip">Execution Governance</span>
+          <span class="chip">Defense-Grade Telemetry</span>
+          <span class="chip">Autonomous Orchestration</span>
+          <span class="chip">Institutional Reliability</span>
         </div>
       </div>
-      <aside class="panel">
-        <h3 style="margin:0;">Network Intelligence Fabric</h3>
-        <p class="label" style="margin-top:8px;">Live multi-chain topology with adaptive AI model routing and health-aware decision layers.</p>
-        <div class="node-map"></div>
+      <aside class="hero-right">
+        <h3>Network Intelligence Fabric</h3>
+        <p>Live orchestration plane with active chain routes, telemetry pulses, and model-directed execution pathways.</p>
+        <div class="fabric">
+          <span class="telemetry-dot d1"></span>
+          <span class="telemetry-dot d2"></span>
+          <span class="telemetry-dot d3"></span>
+        </div>
       </aside>
     </section>
 
+    <div class="divider"></div>
+
     <section>
-      <h2 class="section-title">Why Silvereyes</h2>
+      <h2>Why Silvereyes</h2>
       <div class="grid-3">
-        <article class="panel">
-          <h3 style="margin-top:0;">Real-Time Intelligence</h3>
-          <p class="label">Continuously ingests blockchain state, liquidity movement, and behavioral anomalies for immediate decision support.</p>
+        <article class="card"><h3>Operational Precision</h3><p class="label">High-fidelity chain telemetry combined with deterministic execution controls and policy-aware safeguards.</p></article>
+        <article class="card"><h3>AI Infrastructure Core</h3><p class="label">Signal-ranking intelligence with confidence-weighted routing across autonomous financial pipelines.</p></article>
+        <article class="card"><h3>Institutional Posture</h3><p class="label">Engineered for resilient uptime, graceful degradation, and enterprise governance visibility.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Platform Preview</h2>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Market Intelligence</h3>
+          <div class="terminal">
+            <div class="row"><span>Events / day</span><strong>4.8M</strong></div>
+            <div class="row"><span>Signal latency</span><strong>37ms</strong></div>
+            <div class="row"><span>Active chains</span><strong class="status-on">26 ONLINE</strong></div>
+          </div>
+          <div class="spark"></div>
         </article>
-        <article class="panel">
-          <h3 style="margin-top:0;">AI-Native Infrastructure</h3>
-          <p class="label">Built around model-assisted inference, confidence-weighted signals, and autonomous orchestration.</p>
+        <article class="card">
+          <h3>AI Confidence Scoring</h3>
+          <div class="terminal">
+            <div class="row"><span>Avg confidence</span><strong>0.94</strong></div>
+            <div class="row"><span>Signals / min</span><strong>812</strong></div>
+            <div class="row"><span>Outlier quarantine</span><strong class="status-warn">6.1%</strong></div>
+          </div>
+          <div class="spark"></div>
         </article>
-        <article class="panel">
-          <h3 style="margin-top:0;">Enterprise Reliability</h3>
-          <p class="label">Resilient event architecture, graceful degradation, and controlled execution monitoring across chains.</p>
+        <article class="card">
+          <h3>Execution Monitoring</h3>
+          <div class="terminal">
+            <div class="row"><span>Network health</span><strong class="status-on">99.98%</strong></div>
+            <div class="row"><span>Decision cycle</span><strong>63ms</strong></div>
+            <div class="row"><span>Error rate</span><strong>0.04%</strong></div>
+          </div>
+          <div class="spark"></div>
         </article>
       </div>
     </section>
 
     <section>
-      <h2 class="section-title">Platform Preview</h2>
-      <div class="grid-3">
-        <article class="panel">
-          <h3 style="margin-top:0;">Market Intelligence</h3>
-          <div class="metric-grid">
-            <div class="metric"><div class="kpi">4.8M</div><div class="label">Events/day</div></div>
-            <div class="metric"><div class="kpi">37ms</div><div class="label">Signal latency</div></div>
-            <div class="metric"><div class="kpi ok">92.4%</div><div class="label">Model precision</div></div>
-            <div class="metric"><div class="kpi">26</div><div class="label">Active chains</div></div>
-          </div>
-        </article>
-        <article class="panel">
-          <h3 style="margin-top:0;">AI Confidence Scoring</h3>
-          <div class="metric-grid">
-            <div class="metric"><div class="kpi">0.94</div><div class="label">Avg confidence</div></div>
-            <div class="metric"><div class="kpi">812</div><div class="label">Signals/min</div></div>
-            <div class="metric"><div class="kpi warn">6.1%</div><div class="label">Quarantined outliers</div></div>
-            <div class="metric"><div class="kpi">11</div><div class="label">Model domains</div></div>
-          </div>
-        </article>
-        <article class="panel">
-          <h3 style="margin-top:0;">Execution Monitoring</h3>
-          <div class="metric-grid">
-            <div class="metric"><div class="kpi ok">99.98%</div><div class="label">Network health</div></div>
-            <div class="metric"><div class="kpi">63ms</div><div class="label">Decision cycle</div></div>
-            <div class="metric"><div class="kpi">0.04%</div><div class="label">Error rate</div></div>
-            <div class="metric"><div class="kpi">24/7</div><div class="label">Runtime oversight</div></div>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <h2 class="section-title">Core Technologies</h2>
+      <h2>Core Technologies</h2>
       <div class="grid-2">
-        <article class="panel"><strong>Multi-Chain Event Fabric</strong><p class="label">Unified ingestion and normalization across EVM and non-EVM ecosystems.</p></article>
-        <article class="panel"><strong>Adaptive AI Intelligence Layer</strong><p class="label">Confidence-weighted scoring for market state, liquidity, and anomaly detection.</p></article>
-        <article class="panel"><strong>Autonomous Risk Infrastructure</strong><p class="label">Policy-aware execution controls and real-time guardrails for resilient operations.</p></article>
-        <article class="panel"><strong>Institutional Observability</strong><p class="label">HUD-style system telemetry for infrastructure health and execution integrity.</p></article>
+        <article class="card"><h3>Multi-Chain Event Fabric</h3><p class="label">Unified ingestion and normalization across EVM and non-EVM chains with governance-aware event flow.</p></article>
+        <article class="card"><h3>Adaptive AI Inference Layer</h3><p class="label">Confidence-scored intelligence models for liquidity, risk, anomaly, and market state understanding.</p></article>
+        <article class="card"><h3>Autonomous Risk Controls</h3><p class="label">Real-time guardrails and policy-aware execution modules for operational safety at scale.</p></article>
+        <article class="card"><h3>Institutional Observability</h3><p class="label">Terminal-grade telemetry, stage-level diagnostics, and operational accountability throughout runtime.</p></article>
       </div>
     </section>
 
     <section>
-      <h2 class="section-title">Current Development Focus</h2>
-      <article class="panel">
-        <ul class="focus-list">
-          <li>Cross-chain state synchronization and execution consistency.</li>
-          <li>AI-assisted market regime classification and predictive anomaly detection.</li>
-          <li>Advanced network health diagnostics and adaptive fallback orchestration.</li>
-          <li>Enterprise onboarding framework for institutional strategy partners.</li>
-        </ul>
+      <h2>Current Development Focus</h2>
+      <div class="timeline">
+        <article class="phase">
+          <div class="phase-head"><strong><span class="light"></span>Pipeline Synchronization</strong><span>Phase 1</span></div>
+          <p class="label">Cross-chain state harmonization and deterministic routing integrity.</p>
+          <div class="track"><div class="bar" style="width:78%"></div></div>
+        </article>
+        <article class="phase">
+          <div class="phase-head"><strong><span class="light"></span>AI Regime Classification</strong><span>Phase 2</span></div>
+          <p class="label">Adaptive market regime detection and real-time anomaly prioritization.</p>
+          <div class="track"><div class="bar" style="width:64%"></div></div>
+        </article>
+        <article class="phase">
+          <div class="phase-head"><strong><span class="light"></span>Deployment Readiness</strong><span>Phase 3</span></div>
+          <p class="label">Institutional onboarding pathways and autonomous orchestration hardening.</p>
+          <div class="track"><div class="bar" style="width:52%"></div></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <article class="card">
+        <h2>Early Access</h2>
+        <p class="label">Priority onboarding for partners building autonomous decentralized financial infrastructure.</p>
+        <div class="actions"><button class="btn primary">Request Early Access</button></div>
+      </article>
+      <article class="card">
+        <h2>Contact</h2>
+        <p class="label">Business: partners@silvereyes.ai</p>
+        <p class="label">Technical: architecture@silvereyes.ai</p>
+        <p class="label">Location: United States</p>
       </article>
     </section>
 
-    <section>
-      <h2 class="section-title">Early Access</h2>
-      <article class="panel cta-band">
+    <footer class="footer">
+      <div class="footer-grid">
         <div>
-          <strong>Join the Silvereyes early access cohort.</strong>
-          <p class="label" style="margin:8px 0 0;">Priority onboarding for partners building next-generation decentralized financial infrastructure.</p>
+          <strong>Silvereyes Technologies LLC</strong>
+          <p class="label">Founded 2025</p>
+          <p class="label">Copyright © 2026 Silvereyes Technologies LLC. All rights reserved.</p>
         </div>
-        <button class="btn primary">Request Early Access</button>
-      </article>
-    </section>
-
-    <section>
-      <h2 class="section-title">Contact</h2>
-      <article class="panel">
-        <ul class="contact-list">
-          <li>Business: partners@silvereyes.ai</li>
-          <li>Technical: architecture@silvereyes.ai</li>
-          <li>Location: United States</li>
-        </ul>
-      </article>
-    </section>
-
-    <footer>
-      <div>Silvereyes Technologies LLC</div>
-      <div>Founded 2025</div>
-      <div>Copyright © 2026 Silvereyes Technologies LLC. All rights reserved.</div>
+        <div>
+          <strong>Platform Status</strong>
+          <p class="label">SYSTEM STATUS: <span class="status-on">OPERATIONAL</span></p>
+          <p class="label">NETWORK FABRIC: <span class="status-on">ACTIVE</span></p>
+        </div>
+        <div>
+          <strong>Infrastructure</strong>
+          <p class="label">AI ORCHESTRATION: <span class="status-on">ONLINE</span></p>
+          <p class="label">Primary Region: US</p>
+          <p class="label">Availability: 99.98%</p>
+        </div>
+      </div>
     </footer>
   </div>
 </body>
