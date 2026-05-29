@@ -90,6 +90,12 @@
 
     .bg-neural,
     .bg-particles,
+      .env-layer,
+      .env-layer-2,
+      .bg-fog,
+      .bg-hud,
+      .bg-bloom,
+      .bg-pulse,
     .bg-parallax {
       position: fixed;
       inset: 0;
@@ -121,6 +127,61 @@
     .bg-parallax {
       background: radial-gradient(900px 500px at 30% 85%, rgba(122, 184, 255, 0.08), transparent 70%);
       transform: translateZ(0);
+    }
+
+
+    .env-layer,
+    .env-layer-2 {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.55;
+    }
+
+    .env-layer-2 { opacity: 0.38; }
+
+    .bg-fog,
+    .bg-hud,
+    .bg-bloom,
+    .bg-pulse {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-fog {
+      background:
+        radial-gradient(800px 500px at 20% 70%, rgba(113, 178, 255, 0.10), transparent 70%),
+        radial-gradient(900px 500px at 80% 25%, rgba(132, 197, 255, 0.08), transparent 72%);
+      animation: floatY calc(var(--t-slow) * 1.6) var(--ease-smooth) infinite alternate;
+      opacity: 0.42;
+    }
+
+    .bg-hud {
+      background:
+        radial-gradient(circle at 12% 22%, rgba(137, 199, 255, 0.10) 0 120px, transparent 130px),
+        radial-gradient(circle at 88% 78%, rgba(137, 199, 255, 0.08) 0 140px, transparent 150px),
+        radial-gradient(circle at 52% 46%, rgba(137, 199, 255, 0.06) 0 180px, transparent 190px);
+      animation: shiftX calc(var(--t-slow) * 1.4) var(--ease-smooth) infinite alternate;
+      opacity: 0.24;
+    }
+
+    .bg-bloom {
+      background:
+        radial-gradient(520px 280px at 28% 14%, rgba(110, 189, 255, 0.16), transparent 72%),
+        radial-gradient(480px 260px at 72% 18%, rgba(110, 189, 255, 0.13), transparent 72%),
+        radial-gradient(620px 300px at 50% 70%, rgba(110, 189, 255, 0.08), transparent 75%);
+      animation: glowBreath calc(var(--t-slow) * 0.9) var(--ease-smooth) infinite;
+      opacity: 0.32;
+    }
+
+    .bg-pulse {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(120, 190, 255, 0.0) 0 120px, rgba(120, 190, 255, 0.10) 150px, rgba(120, 190, 255, 0) 220px);
+      opacity: 0.18;
+      animation: ringPulse calc(var(--t-slow) * 1.2) var(--ease-smooth) infinite;
     }
 
     .nav { padding: 24px 0; display: flex; justify-content: space-between; align-items: center; }
@@ -489,6 +550,12 @@
       .bg-parallax,
       .bg-neural,
       .bg-particles,
+      .env-layer,
+      .env-layer-2,
+      .bg-fog,
+      .bg-hud,
+      .bg-bloom,
+      .bg-pulse,
       body::before,
       body::after,
       .fabric::before,
@@ -504,6 +571,13 @@
   </style>
 </head>
 <body>
+
+  <canvas class="env-layer" id="envLayer"></canvas>
+  <canvas class="env-layer-2" id="envLayer2"></canvas>
+  <div class="bg-fog"></div>
+  <div class="bg-hud"></div>
+  <div class="bg-bloom"></div>
+  <div class="bg-pulse"></div>
   <div class="bg-neural"></div>
   <div class="bg-particles"></div>
   <div class="bg-parallax" id="bgParallax"></div>
@@ -679,21 +753,143 @@
   <script>
     (function () {
       const p = document.getElementById('bgParallax');
-      if (!p) return;
+      const c1 = document.getElementById('envLayer');
+      const c2 = document.getElementById('envLayer2');
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       let tx = 0, ty = 0, cx = 0, cy = 0;
+
+      function fit(canvas) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return ctx;
+      }
+
+      const ctx1 = c1 ? fit(c1) : null;
+      const ctx2 = c2 ? fit(c2) : null;
+
+      const particles = Array.from({ length: 42 }, (_, i) => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: 0.8 + Math.random() * 1.7,
+        vx: (Math.random() - 0.5) * 0.07,
+        vy: (Math.random() - 0.5) * 0.07,
+        a: 0.12 + Math.random() * 0.25
+      }));
+
+      const nodes = Array.from({ length: 26 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.14,
+        vy: (Math.random() - 0.5) * 0.14
+      }));
+
+      const streams = Array.from({ length: 8 }, (_, i) => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        len: 120 + Math.random() * 160,
+        a: 0.03 + Math.random() * 0.05,
+        tilt: i % 2 ? 1 : -1
+      }));
+
+      function wrap(o) {
+        if (o.x < -20) o.x = window.innerWidth + 20;
+        if (o.x > window.innerWidth + 20) o.x = -20;
+        if (o.y < -20) o.y = window.innerHeight + 20;
+        if (o.y > window.innerHeight + 20) o.y = -20;
+      }
+
+      function draw(t) {
+        if (reduce) return;
+        if (ctx1) {
+          ctx1.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          for (const pt of particles) {
+            pt.x += pt.vx; pt.y += pt.vy; wrap(pt);
+            ctx1.beginPath();
+            ctx1.fillStyle = `rgba(132,205,255,${pt.a})`;
+            ctx1.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+            ctx1.fill();
+          }
+
+          for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            n.x += n.vx * 0.22; n.y += n.vy * 0.22; wrap(n);
+            ctx1.beginPath();
+            ctx1.fillStyle = 'rgba(150,215,255,0.22)';
+            ctx1.arc(n.x, n.y, 1.4, 0, Math.PI * 2);
+            ctx1.fill();
+            for (let j = i + 1; j < nodes.length; j++) {
+              const m = nodes[j];
+              const dx = n.x - m.x, dy = n.y - m.y;
+              const d = Math.hypot(dx, dy);
+              if (d < 170) {
+                ctx1.strokeStyle = `rgba(130,190,255,${(1 - d / 170) * 0.08})`;
+                ctx1.lineWidth = 1;
+                ctx1.beginPath();
+                ctx1.moveTo(n.x, n.y);
+                ctx1.lineTo(m.x, m.y);
+                ctx1.stroke();
+              }
+            }
+          }
+        }
+
+        if (ctx2) {
+          ctx2.clearRect(0, 0, window.innerWidth, window.innerHeight);
+          const phase = (t * 0.00005);
+          for (const s of streams) {
+            s.y += 0.08; if (s.y > window.innerHeight + 60) s.y = -60;
+            const x = s.x + Math.sin(phase + s.x * 0.01) * 16;
+            ctx2.strokeStyle = `rgba(126,190,255,${s.a})`;
+            ctx2.lineWidth = 1.2;
+            ctx2.beginPath();
+            ctx2.moveTo(x, s.y);
+            ctx2.lineTo(x + s.len * 0.22 * s.tilt, s.y + s.len);
+            ctx2.stroke();
+          }
+
+          // faint holographic rings
+          ctx2.strokeStyle = 'rgba(140,198,255,0.08)';
+          ctx2.lineWidth = 1;
+          const rings = [
+            [window.innerWidth * 0.15, window.innerHeight * 0.22, 130 + Math.sin(phase * 20) * 4],
+            [window.innerWidth * 0.84, window.innerHeight * 0.74, 160 + Math.cos(phase * 18) * 4],
+            [window.innerWidth * 0.52, window.innerHeight * 0.52, 210 + Math.sin(phase * 12) * 3]
+          ];
+          for (const r of rings) {
+            ctx2.beginPath();
+            ctx2.arc(r[0], r[1], r[2], 0, Math.PI * 2);
+            ctx2.stroke();
+          }
+        }
+
+        if (p) {
+          cx += (tx - cx) * 0.04;
+          cy += (ty - cy) * 0.04;
+          p.style.transform = 'translate3d(' + cx.toFixed(2) + 'px,' + cy.toFixed(2) + 'px,0)';
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      function onResize() {
+        if (c1) fit(c1);
+        if (c2) fit(c2);
+      }
+
       window.addEventListener('mousemove', function (e) {
         const x = (e.clientX / window.innerWidth) - 0.5;
         const y = (e.clientY / window.innerHeight) - 0.5;
         tx = x * 8;
         ty = y * 8;
       }, { passive: true });
-      function tick() {
-        cx += (tx - cx) * 0.04;
-        cy += (ty - cy) * 0.04;
-        p.style.transform = 'translate3d(' + cx.toFixed(2) + 'px,' + cy.toFixed(2) + 'px,0)';
-        requestAnimationFrame(tick);
-      }
-      tick();
+
+      window.addEventListener('resize', onResize, { passive: true });
+      if (!reduce) requestAnimationFrame(draw);
     })();
   </script>
 </body>
